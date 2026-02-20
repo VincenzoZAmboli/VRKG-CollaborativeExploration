@@ -1,0 +1,6 @@
+proj qnot
+--changes 
+import- 85 
+ 
+
+mpgen/ kg gen ?? si possono unire?

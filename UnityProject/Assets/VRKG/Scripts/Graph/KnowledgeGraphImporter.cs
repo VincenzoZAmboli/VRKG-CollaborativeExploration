@@ -82,20 +82,7 @@ public class KnowledgeGraphImporter : MonoBehaviour
     void GetTableFromCSV(string csvFileName)
     {
         string readText = File.ReadAllText(csvFileName);
-        string[,] csv = SplitCsvGrid(readText);
-        Table.Entries = new List<KGTableEntry>();
-        for (int i = 1; i < csv.GetUpperBound(1); ++i)
-        {
-            KGTableEntry newEntry = new KGTableEntry();
-            newEntry.Subject = csv[0, i];
-            newEntry.SubjectLabel = csv[1, i];
-            newEntry.SubjectComment = csv[2, i];
-            newEntry.Predicate = csv[3, i];
-            newEntry.PredicateLabel = csv[4, i];
-            newEntry.Object = csv[5, i];
-            newEntry.ObjectLabel = csv[6, i];
-            Table.Entries.Add(newEntry);
-        }
+        GetTableFromCSVContent(readText);//tolto ridondanza
     }
 
 #if UNITY_EDITOR
