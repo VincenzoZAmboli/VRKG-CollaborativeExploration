@@ -40,6 +40,7 @@ public class FocusHandler : MonoBehaviourPun
     public OwnershipManager OwnershipMan;
     public UIParamsManager UIParams;
     public UIEdgesManager UIEdges;
+    public UIQuerySelect uIQuerySelect;
     private GameObject selectedNode;
     private bool focused;
     private bool focusSelected;
@@ -91,7 +92,8 @@ public class FocusHandler : MonoBehaviourPun
         UIParams.OnFocus(selectedNode);
         if (nodeView.IsMine)
         {
-            UIEdges.OnNodeSelected(selectedNode);
+            UIEdges.OnNodeSelected(selectedNode);//arr oob err?
+            uIQuerySelect.OnNodeSelected(selectedNode);
         }
     }
 
@@ -111,6 +113,7 @@ public class FocusHandler : MonoBehaviourPun
             selectedNode.GetComponent<NodeMaterialController>().OnHoverEnd();
         UIParams.OnUnfocus();
         UIEdges.OnNodeUnselected();
+        uIQuerySelect.OnNodeUnselected();
     }
     
     [PunRPC]

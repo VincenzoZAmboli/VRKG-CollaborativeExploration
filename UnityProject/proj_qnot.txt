@@ -1,6 +1,18 @@
-proj qnot
---changes 
-import- 85 
- 
+
+-created UiQuerySelect //4 ui piece that manages queries--simil-UiEdgesManager
+-In FocusHandler
+	-added reference 2 QuerySelect
+-UiQuery-contiene titolo e ogg. query
+-Query obj x query effettiva(quando verranno implementate)
+-UiQueryHandler// 4 buttons-- simil UiEdgeHandler
+
+
 
 mpgen/ kg gen ?? si possono unire?
+
+--add UIQuery
+--func x new node
+
+--come effettuo query su grafo già esistente ?
+	-remove nodes con criterio
+	-

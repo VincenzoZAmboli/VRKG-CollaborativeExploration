@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using TMPro;
 
+
 /*
  * MIT License
 
@@ -30,26 +31,31 @@ SOFTWARE.
 
  */
 
+//Test for performing queries on focused node
+
 [Serializable]
-public class UIEdgeButton
+public class UIQueryButton
 {
     public GameObject Parent;
     public TextMeshProUGUI Text;
 }
 
-/* Manages the UI on the left, when a node is on focus */
-public class UIEdgesManager : MonoBehaviour
+
+//shows up on focus and shows possible queries on that node-- for now only test spawn node function
+
+public class UIQuerySelect : MonoBehaviour
 {
+
     public Vector3 OffsetFromCamera;
     public FocusHandler FocusHndlr;
-    private List<UIEdgeButton> buttons;
-    private List<EdgeManager> edges;
-    private List<EdgeManager> selectableEdges;
+    private List<UIQueryButton> buttons;
 
+    private List<UIQuery> available_queries;
+   
     private void Awake()
     {
-        edges = new List<EdgeManager>();
-        buttons = new List<UIEdgeButton>();
+        buttons = new List<UIQueryButton>();
+        available_queries = new List<UIQuery>();
     }
     
     IEnumerator Start()
@@ -57,44 +63,45 @@ public class UIEdgesManager : MonoBehaviour
         yield return null;
         gameObject.SetActive(false);
     }
-
-    public void RegisterEdge(EdgeManager edge)
-    {
-        edges.Add(edge);
-    }
     
-    public void UnregisterEdge(EdgeManager edge)
-    {
-        edges.Remove(edge);
-    }
-    
-    public void RegisterButton(GameObject obj, TextMeshProUGUI txt, int index)
-    {
-        while (index >= buttons.Count)
-        {
-            buttons.Add(null);
-        }
-        buttons[index] = new UIEdgeButton{Parent = obj, Text = txt};
-    }
-
     public void OnJoinedRoom()
     {
+      
+
+
         Vector3 focusPoint = Camera.main.transform.position + Camera.main.transform.forward * OffsetFromCamera.z 
                                                             + Camera.main.transform.right * OffsetFromCamera.x;
         transform.position = focusPoint;
         transform.LookAt(Camera.main.transform.position);
         transform.Rotate(0f, 180f, 0f);
     }
+  
+    public void RegisterButton(GameObject obj, TextMeshProUGUI txt, int index)
+    {
+        while (index >= buttons.Count)
+        {
+            buttons.Add(null);
+        }
+        buttons[index] = new UIQueryButton{Parent = obj, Text = txt};
+    }
 
     public void OnNodeSelected(GameObject node)
     {
         gameObject.SetActive(true);
-        selectableEdges = edges.Where(e => e.Node1 == node || e.Node2 == node).ToList();
         buttons.ForEach(b => b.Parent.SetActive(false));
-        for(int i = 0; i < selectableEdges.Count; ++i)
+        //scegli query disponibili
+        //criterio per scelta qury??
+          // example query
+        UIQuery test = new UIQuery("test_query");
+        available_queries.Add(test);
+        //
+        
+        //qtest        
+        for(int i = 0; i < available_queries.Count; ++i)
         {  //Arr out of bound err??
             buttons[i].Parent.SetActive(true);
-            buttons[i].Text.text = selectableEdges[i].Title;
+            
+            buttons[i].Text.text = available_queries[i].Title;
         }
     }
 
@@ -103,14 +110,10 @@ public class UIEdgesManager : MonoBehaviour
         gameObject.SetActive(false);
     }
 
-    public void OnEdgePressed(GameObject button)// possibiltà query sul nodo?
+    public void ExecuteQuery()
     {
-        UIEdgeButton uiButton = buttons.FirstOrDefault(b => b.Parent == button);
-        if (uiButton != null)
-        {
-            int buttonIndex = buttons.IndexOf(uiButton);
-            EdgeManager pressedEdge = selectableEdges[buttonIndex];
-            FocusHndlr.OnEdgePressed(pressedEdge);
-        }
+        Debug.Log("query executed");
+        
     }
+
 }
