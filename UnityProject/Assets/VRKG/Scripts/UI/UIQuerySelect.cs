@@ -110,9 +110,12 @@ public class UIQuerySelect : MonoBehaviour
         gameObject.SetActive(false);
     }
 
-    public void ExecuteQuery()
+    public void ExecuteQuery(GameObject but)
     {
-        Debug.Log("query executed");
+        int qindex= but.Index;
+        UIQuery selected_query= available_queries[qindex];
+        Debug.Log("query executed: " + selected_query.Title);
+        //graph gen?
         
     }
 

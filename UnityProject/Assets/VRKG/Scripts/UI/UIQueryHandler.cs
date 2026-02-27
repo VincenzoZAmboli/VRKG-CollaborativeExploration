@@ -43,6 +43,6 @@ public class UIQueryHandler : MonoBehaviour
 
     public void OnClick()
     {
-       selector.ExecuteQuery();
+       selector.ExecuteQuery(gameObject);
     }
 }
