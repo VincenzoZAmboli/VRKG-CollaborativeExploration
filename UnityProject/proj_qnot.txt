@@ -1,8 +1,28 @@
+//fatto
+--MPGraphGen-- added public to GenerateGraphFromCsv 4 test -- rem?'
+--QuerySelect uses mpgraph gen to makenew graph form new csv
+
+---non funziona manco il cazzo
+
+
+
+
+//da fare
+--LocalQueryStorage.cs --> definition for QueryEntry
+--change Query/UIQuery/UIQuerySelect--   to accomodate.
+accorpare
+--ADD 2 MIxedreaòiotyscenecontent--  GraphSaver script to save graph gameobejt and go back 2 prev graph
+-- o in graph gen
+
+
+
+
 
 mpgen/ kg gen ?? si possono unire?
 
 --func x new node
 
 --come effettuo query su grafo già esistente ?
+	-add testnode	
 	-remove nodes con criterio
 	-

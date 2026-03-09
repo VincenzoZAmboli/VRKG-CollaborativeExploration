@@ -10,7 +10,7 @@ public class UIQuery{
     //da agg
     public Query SPARQLquery;
 
-    
+    public QueryEntry entry;
     public UIQuery(string title){
         Title=title;
         

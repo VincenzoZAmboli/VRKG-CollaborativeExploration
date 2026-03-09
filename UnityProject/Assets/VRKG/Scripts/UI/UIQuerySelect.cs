@@ -4,6 +4,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using TMPro;
+using System.Xml;
 
 
 /*
@@ -48,20 +49,34 @@ public class UIQuerySelect : MonoBehaviour
 
     public Vector3 OffsetFromCamera;
     public FocusHandler FocusHndlr;
+    public MPGraphGenerator generator;//local graph gen taken from scene
     private List<UIQueryButton> buttons;
-
+    private UIQuery test;
+    private QueryEntry queryEntryT;
     private List<UIQuery> available_queries;
+
+    private KGNode focused_node;
    
     private void Awake()
     {
         buttons = new List<UIQueryButton>();
         available_queries = new List<UIQuery>();
+
+
+        // gen example query
+        test = new UIQuery("test_query_symptoms");
+        queryEntryT= new QueryEntry();
+        queryEntryT.CsvFileName="SymptomsDiseases.csv";
+        test.entry= queryEntryT;
+        available_queries.Add(test);
+        //
     }
     
     IEnumerator Start()
     {
         yield return null;
         gameObject.SetActive(false);
+            
     }
     
     public void OnJoinedRoom()
@@ -87,14 +102,13 @@ public class UIQuerySelect : MonoBehaviour
 
     public void OnNodeSelected(GameObject node)
     {
+        //focused_node= (KGNode) node;//4later query
+
         gameObject.SetActive(true);
         buttons.ForEach(b => b.Parent.SetActive(false));
         //scegli query disponibili
         //criterio per scelta qury??
-          // example query
-        UIQuery test = new UIQuery("test_query");
-        available_queries.Add(test);
-        //
+        
         
         //qtest        
         for(int i = 0; i < available_queries.Count; ++i)
@@ -112,11 +126,17 @@ public class UIQuerySelect : MonoBehaviour
 
     public void ExecuteQuery(GameObject but)
     {
-        int qindex= but.Index;
-        UIQuery selected_query= available_queries[qindex];
-        Debug.Log("query executed: " + selected_query.Title);
-        //graph gen?
+        UIQueryButton selected_button= buttons.FirstOrDefault(b => b.Parent == but);
         
+        if(selected_button!=null)
+        {
+            int qindex= buttons.IndexOf(selected_button);
+            UIQuery selected_query= available_queries[qindex];
+            Debug.Log("query executed: " + selected_query.Title);
+            //graph gen?
+
+            generator.GenerateGraphFromCsv(test.entry);
+        }
     }
 
 }

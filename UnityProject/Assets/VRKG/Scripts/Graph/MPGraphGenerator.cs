@@ -79,7 +79,7 @@ public class MPGraphGenerator : MonoBehaviourPun
         StartAnim.OnGraphCreated();
     }
 
-    void GenerateGraphFromCsv(QueryEntry query)
+    public void GenerateGraphFromCsv(QueryEntry query)//added public 4 new query gen test
     {
         StartCoroutine(Storage.GetQueryContent(query, OnCsvRetrieved));
     }
