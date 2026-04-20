@@ -32,14 +32,7 @@ SOFTWARE.
 
  */
 
-[Serializable]
-public class QueryEntry
-{
-    public string Name;
-    public string Preview;
-    public string CsvFileName;
-    public string GraphicsProfile;
-}
+
 
 /* Manages a local file storage in a folder */
 public class LocalQueryStorage : MonoBehaviour

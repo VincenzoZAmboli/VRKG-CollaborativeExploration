@@ -51,10 +51,9 @@ public class UIQuerySelect : MonoBehaviour
     public FocusHandler FocusHndlr;
     public MPGraphGenerator generator;//local graph gen taken from scene
     private List<UIQueryButton> buttons;
-    private UIQuery test;
     private QueryEntry queryEntryT;
     private List<UIQuery> available_queries;
-
+    private RequestHandler reqHandler;
     private KGNode focused_node;
    
     private void Awake()
@@ -62,16 +61,22 @@ public class UIQuerySelect : MonoBehaviour
         buttons = new List<UIQueryButton>();
         available_queries = new List<UIQuery>();
 
+        //init request handler ?
+
+
 
         // gen example query
-        test = new UIQuery("test_query_symptoms");
-        queryEntryT= new QueryEntry();
-        queryEntryT.CsvFileName="SymptomsDiseases.csv";
-        test.entry= queryEntryT;
-        available_queries.Add(test);
+        UIQuery test = new UIQuery("SELECT ?item ?itemLabel WHERE { ?item wdt:P31 wd:Q5 . SERVICE wikibase:label { bd:serviceParam wikibase:language 'en'. } } LIMIT 10");
+        //modo per inserimento q
+        test.Title = "Wikidata connection test";
         //
+    
+    
+    
     }
     
+
+
     IEnumerator Start()
     {
         yield return null;
@@ -81,9 +86,6 @@ public class UIQuerySelect : MonoBehaviour
     
     public void OnJoinedRoom()
     {
-      
-
-
         Vector3 focusPoint = Camera.main.transform.position + Camera.main.transform.forward * OffsetFromCamera.z 
                                                             + Camera.main.transform.right * OffsetFromCamera.x;
         transform.position = focusPoint;
@@ -132,10 +134,22 @@ public class UIQuerySelect : MonoBehaviour
         {
             int qindex= buttons.IndexOf(selected_button);
             UIQuery selected_query= available_queries[qindex];
-            Debug.Log("query executed: " + selected_query.Title);
+            //Esecuzione query
+            reqHandler.SendSparqlRequest(selected_query.sparqle_query,
+                onSuccess=>{
+                    Debug.Log("QUERY RESULT : \n"+ onSuccess);
+                    //per ora solo log, poi parsing csv e graph gen
+                },
+
+                onError=>{Debug.LogError(onError);}
+                ); 
+
+
+            Debug.Log("query sent to rq handler ");
             //graph gen?
 
-            generator.GenerateGraphFromCsv(test.entry);
+
+
         }
     }
 
