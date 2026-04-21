@@ -18,15 +18,16 @@ public class RequestHandler : MonoBehaviour
 
     private IEnumerator ExecuteQuery(string query, Action<string> onSuccess, Action<string> onError)
     {
-        // URL Encode della query
-        string fullUrl = $"{endpointUrl}?query={UnityWebRequest.EscapeURL(query)}&format=csv";
+        // FORZARE CSV nell'url della query funziona per entrambi o basta header??
+        string fullUrl = $"{endpointUrl}?query={UnityWebRequest.EscapeURL(query)}";
 
         using (UnityWebRequest webRequest = UnityWebRequest.Get(fullUrl))
         {
-            webRequest.SetRequestHeader("Accept", "text/csv");
+            webRequest.SetRequestHeader("Accept", "text/csv"); //Perchè ritornain xml e non csv?
+
             //wikidata e dbpedia richiedono header user agent per evitare blocchi
-            // se va cambiato, mantieni formato ApplicationName/Version (ContactInfo)   
-            webRequest.SetRequestHeader("User-Agent", "UnitySparqlClient/1.0 (Contact: your_email@example.com)");
+            // se va cambiato con info di unisa , mantieni formato ApplicationName/Version (ContactInfo)   
+            webRequest.SetRequestHeader("User-Agent", "Vrkg/1.0 (Contact: your_email@example.com)");
 
             yield return webRequest.SendWebRequest();
 

@@ -62,16 +62,15 @@ public class UIQuerySelect : MonoBehaviour
         available_queries = new List<UIQuery>();
 
         //init request handler ?
+        reqHandler = gameObject.AddComponent<RequestHandler>();
 
-
-
-        // gen example query
+        // gen example query  //tutte le persone nate a New York
         UIQuery test = new UIQuery("SELECT ?item ?itemLabel WHERE { ?item wdt:P31 wd:Q5 . SERVICE wikibase:label { bd:serviceParam wikibase:language 'en'. } } LIMIT 10");
         //modo per inserimento q
         test.Title = "Wikidata connection test";
         //
     
-    
+        available_queries.Add(test);
     
     }
     
@@ -134,6 +133,12 @@ public class UIQuerySelect : MonoBehaviour
         {
             int qindex= buttons.IndexOf(selected_button);
             UIQuery selected_query= available_queries[qindex];
+            Debug.Log("SELECTED query: "+ selected_query.sparqle_query);
+            
+            //rendi button momentaneamente invisibili 
+            //1) non devono essere fatte + req. contemporanemate
+            //2) aggiungi indicatore visivo(?) x vedere stato request/exe query
+ 
             //Esecuzione query
             reqHandler.SendSparqlRequest(selected_query.sparqle_query,
                 onSuccess=>{
@@ -147,8 +152,6 @@ public class UIQuerySelect : MonoBehaviour
 
             Debug.Log("query sent to rq handler ");
             //graph gen?
-
-
 
         }
     }
