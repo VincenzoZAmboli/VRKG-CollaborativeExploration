@@ -79,12 +79,12 @@ public class MPGraphGenerator : MonoBehaviourPun
         StartAnim.OnGraphCreated();
     }
 
-    public void GenerateGraphFromCsv(QueryEntry query)//added public 4 new query gen test
+    public void GenerateGraphFromCsv(QueryEntry query)
     {
         StartCoroutine(Storage.GetQueryContent(query, OnCsvRetrieved));
     }
 
-    async void OnCsvRetrieved(string csvText)
+    public async void OnCsvRetrieved(string csvText) ///added public 4 new query gen test
     {
         Debug.Log("3");
         await Task.Run(() => KgImporter.CreateGraphFromCSVContent(csvText));

@@ -23,7 +23,7 @@ public class RequestHandler : MonoBehaviour
 
         using (UnityWebRequest webRequest = UnityWebRequest.Get(fullUrl))
         {
-            webRequest.SetRequestHeader("Accept", "text/csv"); //Perchè ritornain xml e non csv?
+            webRequest.SetRequestHeader("Accept", "text/csv"); //Perchè ritornain  csv in enrambi i casi?
 
             //wikidata e dbpedia richiedono header user agent per evitare blocchi
             // se va cambiato con info di unisa , mantieni formato ApplicationName/Version (ContactInfo)   

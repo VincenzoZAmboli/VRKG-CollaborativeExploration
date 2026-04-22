@@ -1,17 +1,12 @@
 //fatto
---moved "QueryEntry" definition from "LocalQueryStorage"  in "UiQuery"
---removed Query.cs
---added
-Network> RequestHandler.cs connects to chosen sparql endpoint
-takes-query as plain string to put in the get request
-
+-added visual indicator of query exe
+-wait time 1 query allavolta
 
 
 //da fare
 
-
-
-
+--struttura query nel Nostro formato-
+--Generazione Grafo
 
 
 

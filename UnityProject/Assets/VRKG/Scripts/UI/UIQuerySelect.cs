@@ -5,6 +5,10 @@ using System.Collections.Generic;
 using System.Linq;
 using TMPro;
 using System.Xml;
+using System.Dynamic;
+using System.Diagnostics;
+
+using Debug = UnityEngine.Debug; 
 
 
 /*
@@ -50,6 +54,9 @@ public class UIQuerySelect : MonoBehaviour
     public Vector3 OffsetFromCamera;
     public FocusHandler FocusHndlr;
     public MPGraphGenerator generator;//local graph gen taken from scene
+    private GameObject UiContainer;
+    private GameObject QueryInfo;
+    private TextMeshPro infoText;
     private List<UIQueryButton> buttons;
     private QueryEntry queryEntryT;
     private List<UIQuery> available_queries;
@@ -60,16 +67,25 @@ public class UIQuerySelect : MonoBehaviour
     {
         buttons = new List<UIQueryButton>();
         available_queries = new List<UIQuery>();
-
-        //init request handler ?
         reqHandler = gameObject.AddComponent<RequestHandler>();
 
-        // gen example query  //tutte le persone nate a New York
+
+        Transform chTr = transform.Find("Content");
+        if (chTr != null) {
+            UiContainer= chTr.gameObject;
+        }
+
+        Transform childTransform = transform.Find("ConnectionIndicator");
+        if (childTransform != null) {
+            QueryInfo= childTransform.gameObject;
+        }
+
+
+        // gen example query  //tutte le persone ??
         UIQuery test = new UIQuery("SELECT ?item ?itemLabel WHERE { ?item wdt:P31 wd:Q5 . SERVICE wikibase:label { bd:serviceParam wikibase:language 'en'. } } LIMIT 10");
         //modo per inserimento q
         test.Title = "Wikidata connection test";
-        //
-    
+        /////////////RIMUOVERE TEST quando hai trovato modo di inserire query dinamicamente con criterio di scelta
         available_queries.Add(test);
     
     }
@@ -80,7 +96,10 @@ public class UIQuerySelect : MonoBehaviour
     {
         yield return null;
         gameObject.SetActive(false);
-            
+        QueryInfo.SetActive(false);
+
+        infoText = QueryInfo.GetComponentInChildren<TextMeshPro>(true);
+        if(infoText == null){Debug.Log("Textnotfound");}
     }
     
     public void OnJoinedRoom()
@@ -90,6 +109,11 @@ public class UIQuerySelect : MonoBehaviour
         transform.position = focusPoint;
         transform.LookAt(Camera.main.transform.position);
         transform.Rotate(0f, 180f, 0f);
+        //ui piece not moving with camera, but always in front of it at a certain distance   
+
+        
+
+
     }
   
     public void RegisterButton(GameObject obj, TextMeshProUGUI txt, int index)
@@ -104,18 +128,21 @@ public class UIQuerySelect : MonoBehaviour
     public void OnNodeSelected(GameObject node)
     {
         //focused_node= (KGNode) node;//4later query
-
         gameObject.SetActive(true);
+        updateList();
+
+
+    }
+
+
+    public void updateList()
+    {
         buttons.ForEach(b => b.Parent.SetActive(false));
         //scegli query disponibili
         //criterio per scelta qury??
-        
-        
-        //qtest        
         for(int i = 0; i < available_queries.Count; ++i)
         {  //Arr out of bound err??
-            buttons[i].Parent.SetActive(true);
-            
+            buttons[i].Parent.SetActive(true); 
             buttons[i].Text.text = available_queries[i].Title;
         }
     }
@@ -123,6 +150,12 @@ public class UIQuerySelect : MonoBehaviour
     public void OnNodeUnselected()
     {
         gameObject.SetActive(false);
+    }
+
+    public void ReactivateButtons()
+    {
+        UiContainer.SetActive(true);
+        QueryInfo.SetActive(false);
     }
 
     public void ExecuteQuery(GameObject but)
@@ -135,23 +168,40 @@ public class UIQuerySelect : MonoBehaviour
             UIQuery selected_query= available_queries[qindex];
             Debug.Log("SELECTED query: "+ selected_query.sparqle_query);
             
+
             //rendi button momentaneamente invisibili 
-            //1) non devono essere fatte + req. contemporanemate
-            //2) aggiungi indicatore visivo(?) x vedere stato request/exe query
+            UiContainer.SetActive(false);
+            QueryInfo.SetActive(true);
+
+            
+
+            infoText.text = "Executing query...";
  
             //Esecuzione query
             reqHandler.SendSparqlRequest(selected_query.sparqle_query,
                 onSuccess=>{
+                    infoText.text = "Query executed!\nGenerating graph...";
                     Debug.Log("QUERY RESULT : \n"+ onSuccess);
-                    //per ora solo log, poi parsing csv e graph gen
+                    //graph gen??
+                    //trovare modo per far partire gen da nodo corrente
+                   // generator.OnCsvRetrieved(onSuccess);
+                    //GenerateGraph()//però alternativa senza delete e con nodo di partenza
+
+                    infoText.text = "Graph generated!";
+
+                    available_queries.RemoveAt(qindex);
+                    
+                    //riattiva 
+                    Invoke("ReactivateButtons", 5f);
+                    updateList();
                 },
 
-                onError=>{Debug.LogError(onError);}
+                onError=>{Debug.LogError(onError);
+                infoText.text = "Query failed!";
+                //riattiva 
+                Invoke("ReactivateButtons", 3f);
+                }
                 ); 
-
-
-            Debug.Log("query sent to rq handler ");
-            //graph gen?
 
         }
     }
