@@ -1,6 +1,5 @@
-//fatto
--added visual indicator of query exe
--wait time 1 query allavolta
+Genera solo nodi senza archi, e con gli elementi del grafo precedente 
+
 
 
 //da fare

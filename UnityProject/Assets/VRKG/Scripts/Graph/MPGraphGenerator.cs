@@ -249,6 +249,48 @@ public class MPGraphGenerator : MonoBehaviourPun
         }
         
     }
+
+
+    public void GenerateGraphFromNode(GameObject spawnpoint)
+    {
+        InitDataStructures();
+        
+        while (spawnedNodes.Count < MaxNodes && spawnedNodes.Count < KgImporter.Graph.Nodes.Count)
+        {
+            SpawnedNode firstNode; 
+            KGNode first = toSpawnNodes.FirstOrDefault();
+            if(first != null)
+                firstNode= SpawnNode(first, spawnpoint.transform.position);
+            else{
+                Debug.LogError("No nodes to spawn");
+                return;
+            }
+            if (firstNode != null)
+            {
+                openNodes.Add(firstNode);
+                while (openNodes.Count > 0 && spawnedNodes.Count < MaxNodes)
+                {
+                    SpawnedNode curNode = openNodes[0];
+                    List<SpawnedNode> newNodes;
+                    if (closedNodes.Count == 0)
+                    {
+                        newNodes = SpawnNodesAndEdgesAdjacentToNode(curNode);
+                    }
+                    else
+                    {
+                        newNodes = SpawnNonCentralNodesAndEdgesAdjacentToNode(curNode);
+                    }
+
+                    openNodes.RemoveAt(0);
+                    openNodes.AddRange(newNodes);
+                    closedNodes.Add(curNode);
+                }
+            }
+
+        }
+        
+    }
+
     
     [PunRPC]
     void InitNode(int nodeViewID, string title, string content)

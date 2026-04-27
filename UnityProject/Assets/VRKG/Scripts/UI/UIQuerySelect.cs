@@ -54,7 +54,7 @@ public class UIQuerySelect : MonoBehaviour
 
     public Vector3 OffsetFromCamera;
     public FocusHandler FocusHndlr;
-    public MPGraphGenerator generator;//local graph gen taken from scene
+    public MPGraphGenerator generator;//local graph gen taken from 
     private GameObject UiContainer;
     private GameObject QueryInfo;
     private TextMeshProUGUI infoText;
@@ -62,7 +62,7 @@ public class UIQuerySelect : MonoBehaviour
     private QueryEntry queryEntryT;
     private List<UIQuery> available_queries;
     private RequestHandler reqHandler;
-    private KGNode focused_node;
+    private GameObject focused_node;
    
     private void Awake()
     {
@@ -74,9 +74,36 @@ public class UIQuerySelect : MonoBehaviour
         
 
 /////////////////////
-        // gen example query  //tutte le persone ??
-        UIQuery test = new UIQuery("SELECT ?item ?itemLabel WHERE { ?item wdt:P31 wd:Q5 . SERVICE wikibase:label { bd:serviceParam wikibase:language 'en'. } } LIMIT 10");
+/// FORMATO QUERY DEVE ESSERE:
+/// (Subject,SubjectLabel,SubjectComment,Predicate,PredicateLabel,Object,ObjectLabel)
+/// 
+        // gen example query  //template generico
+      /*  UIQuery test = new UIQuery("SELECT ?subject ?subjectLabel ?subjectComment ?predicate ?predicateLabel ?object ?objectLabel WHERE { " +
+                                    "?subject ?predicate ?object. " +
+                                    "?subject rdfs:label ?subjectLabel. " +
+                                    "?subject rdfs:comment ?subjectComment. " +
+                                    "?predicate rdfs:label ?predicateLabel. " +
+                                    "?object rdfs:label ?objectLabel. " +
+                                    "FILTER(LANG(?subjectLabel) = 'en' && LANG(?predicateLabel) = 'en' && LANG(?objectLabel) = 'en') " +
+                                    "LIMIT 100");*/
         //modo per inserimento q
+
+        UIQuery test = new UIQuery("SELECT ?Subject ?SubjectLabel (?CleanComment AS ?SubjectComment) ?Predicate ?PredicateLabel ?Object ?ObjectLabel "+
+"WHERE {{ SELECT DISTINCT ?Subject WHERE {"+
+    "?Subject wdt:P31 wd:Q5 ;"+
+    " wdt:P27 wd:Q40 ;"+
+    " wdt:P106 wd:Q1028181 .}LIMIT 10  }"+
+
+  "BIND(wdt:P106 AS ?Predicate) BIND(wd:Q1028181 AS ?Object)"+
+
+  "SERVICE wikibase:label { bd:serviceParam wikibase:language 'en'. "+ 
+    "?Subject rdfs:label ?SubjectLabel ."+
+    "?Subject schema:description ?RawComment ."+
+    "?propEntity wikibase:directClaim ?Predicate ."+
+    "?propEntity rdfs:label ?PredicateLabel ."+
+   " ?Object rdfs:label ?ObjectLabel . }"+
+
+  "BIND(REPLACE(STR(?RawComment), ';', ',') AS ?CleanComment)}");
         test.Title = "Wikidata connection test";
         /////////////RIMUOVERE TEST quando hai trovato modo di inserire query dinamicamente con criterio di scelta
         available_queries.Add(test);
@@ -142,7 +169,7 @@ public class UIQuerySelect : MonoBehaviour
 
     public void OnNodeSelected(GameObject node)
     {
-        //focused_node= (KGNode) node;//4later query
+        focused_node= node;//4later query
         gameObject.SetActive(true);
         updateList();
 
@@ -199,8 +226,8 @@ public class UIQuerySelect : MonoBehaviour
                     Debug.Log("QUERY RESULT : \n"+ onSuccess);
                     //graph gen??
                     //trovare modo per far partire gen da nodo corrente
-                   // generator.OnCsvRetrieved(onSuccess);
-                    //GenerateGraph()//però alternativa senza delete e con nodo di partenza
+                    generator.OnCsvRetrieved(onSuccess);//aggiungere controllo su formato query?
+                    generator.GenerateGraphFromNode(focused_node);
 
                     infoText.text = "Graph generated!";
 
