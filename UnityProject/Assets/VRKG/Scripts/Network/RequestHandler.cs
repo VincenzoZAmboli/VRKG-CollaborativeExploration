@@ -27,7 +27,7 @@ public class RequestHandler : MonoBehaviour
 
             //wikidata e dbpedia richiedono header user agent per evitare blocchi
             // se va cambiato con info di unisa , mantieni formato ApplicationName/Version (ContactInfo)   
-            webRequest.SetRequestHeader("User-Agent", "Vrkg/1.0 (Contact: your_email@example.com)");
+            webRequest.SetRequestHeader("User-Agent", "VRKG/1.0 (Contact: your_email@example.com)");
 
             yield return webRequest.SendWebRequest();
 

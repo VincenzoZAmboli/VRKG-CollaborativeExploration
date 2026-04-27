@@ -8,7 +8,8 @@ using System.Xml;
 using System.Dynamic;
 using System.Diagnostics;
 
-using Debug = UnityEngine.Debug; 
+using Debug = UnityEngine.Debug;
+//using System.Threading.Tasks.Dataflow;
 
 
 /*
@@ -56,7 +57,7 @@ public class UIQuerySelect : MonoBehaviour
     public MPGraphGenerator generator;//local graph gen taken from scene
     private GameObject UiContainer;
     private GameObject QueryInfo;
-    private TextMeshPro infoText;
+    private TextMeshProUGUI infoText;
     private List<UIQueryButton> buttons;
     private QueryEntry queryEntryT;
     private List<UIQuery> available_queries;
@@ -70,23 +71,19 @@ public class UIQuerySelect : MonoBehaviour
         reqHandler = gameObject.AddComponent<RequestHandler>();
 
 
-        Transform chTr = transform.Find("Content");
-        if (chTr != null) {
-            UiContainer= chTr.gameObject;
-        }
+        
 
-        Transform childTransform = transform.Find("ConnectionIndicator");
-        if (childTransform != null) {
-            QueryInfo= childTransform.gameObject;
-        }
-
-
+/////////////////////
         // gen example query  //tutte le persone ??
         UIQuery test = new UIQuery("SELECT ?item ?itemLabel WHERE { ?item wdt:P31 wd:Q5 . SERVICE wikibase:label { bd:serviceParam wikibase:language 'en'. } } LIMIT 10");
         //modo per inserimento q
         test.Title = "Wikidata connection test";
         /////////////RIMUOVERE TEST quando hai trovato modo di inserire query dinamicamente con criterio di scelta
         available_queries.Add(test);
+////////////////////////////////////
+        
+        
+        
     
     }
     
@@ -95,11 +92,29 @@ public class UIQuerySelect : MonoBehaviour
     IEnumerator Start()
     {
         yield return null;
+
+        Transform chTr = transform.Find("Content/UiContainer");
+        if (chTr != null) {
+            UiContainer= chTr.gameObject;
+        }
+        else{Debug.Log("NULLO CONT");}
+            
+
+        Transform childTransform = transform.Find("Content/QueryInfo");
+        if (childTransform != null) {
+            QueryInfo= childTransform.gameObject;
+        }
+        else{Debug.Log("NULLO QURY");}
+            
+        infoText = QueryInfo.gameObject.GetComponent<TextMeshProUGUI>();
+        if(infoText == null){Debug.Log("Textnotfound");}
+
+
         gameObject.SetActive(false);
         QueryInfo.SetActive(false);
 
-        infoText = QueryInfo.GetComponentInChildren<TextMeshPro>(true);
-        if(infoText == null){Debug.Log("Textnotfound");}
+        
+        
     }
     
     public void OnJoinedRoom()
