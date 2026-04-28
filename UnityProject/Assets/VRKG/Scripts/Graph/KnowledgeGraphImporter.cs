@@ -59,6 +59,19 @@ public class KnowledgeGraphImporter : MonoBehaviour
         GetGraphFromTable();
     }
     
+
+    public void ClearTableAndGraph()//added for testing purposes to avoid confusion when adding subgraph
+    {
+        Table = new KGTable();
+        //Graph = new KGDescriptor();///!!avoid err atln.151??
+        //creare nuovo graph mi dà errore 
+        //tecnicamente non è necessaraio crearea nuovo gdesc 
+        //le liste vegnono gia pulite in GetGraphFromTable
+    }
+
+
+
+
     void GetTableFromCSVContent(string csvText)
     {
         // split cells in a string[,]
@@ -76,6 +89,15 @@ public class KnowledgeGraphImporter : MonoBehaviour
             newEntry.Object = csv[5, i];
             newEntry.ObjectLabel = csv[6, i];
             Table.Entries.Add(newEntry);
+        }
+    }
+
+
+    public void printTable()//vediamo se è il risulato a creare confusione quando aggiungo subgraph
+    {
+        foreach (var entry in Table.Entries)
+        {
+            Debug.Log($"Subject: {entry.Subject}, SubjectLabel: {entry.SubjectLabel}, SubjectComment: {entry.SubjectComment}, Predicate: {entry.Predicate}, PredicateLabel: {entry.PredicateLabel}, Object: {entry.Object}, ObjectLabel: {entry.ObjectLabel}");
         }
     }
 

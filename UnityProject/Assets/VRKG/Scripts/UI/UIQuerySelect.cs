@@ -215,18 +215,17 @@ public class UIQuerySelect : MonoBehaviour
             UiContainer.SetActive(false);
             QueryInfo.SetActive(true);
 
-            
-
             infoText.text = "Executing query...";
  
             //Esecuzione query
             reqHandler.SendSparqlRequest(selected_query.sparqle_query,
-                onSuccess=>{
+                async onSuccess=>{
                     infoText.text = "Query executed!\nGenerating graph...";
                     Debug.Log("QUERY RESULT : \n"+ onSuccess);
                     //graph gen??
                     //trovare modo per far partire gen da nodo corrente
-                    generator.OnCsvRetrieved(onSuccess);//aggiungere controllo su formato query?
+                    generator.resetEverything();//testing if this avoids confusion when adding subgrap
+                    await generator.OnCsvRetrievedAsync(onSuccess);//aggiungere controllo su formato query?
                     generator.GenerateGraphFromNode(focused_node);
 
                     infoText.text = "Graph generated!";

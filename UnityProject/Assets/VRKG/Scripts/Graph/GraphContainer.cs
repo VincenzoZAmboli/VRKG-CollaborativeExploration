@@ -114,5 +114,10 @@ public class GraphContainer : MonoBehaviour
         UIEdges.UnregisterEdge(edge.GetComponent<EdgeManager>());
     }
 
+    public void ClearGraph()
+    {
+       Nodes.Clear();//destroying nodes and edges is handled by the MPGraphGenerator, here we just clear the lists
+       Edges.Clear();//testing if this avoids confusiion when adding subgraph
+    }
     
 }

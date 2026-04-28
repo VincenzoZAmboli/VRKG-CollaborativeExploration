@@ -84,13 +84,45 @@ public class MPGraphGenerator : MonoBehaviourPun
         StartCoroutine(Storage.GetQueryContent(query, OnCsvRetrieved));
     }
 
-    public async void OnCsvRetrieved(string csvText) ///added public 4 new query gen test
+    public async void OnCsvRetrieved(string csvText)
     {
         Debug.Log("3");
         await Task.Run(() => KgImporter.CreateGraphFromCSVContent(csvText));
         Debug.Log("4");
         semaphore = true;
     }
+
+//using this one 4subgraph to make sure graph is generated only after csv 
+     public async Task OnCsvRetrievedAsync(string csvText)
+    {
+        Debug.Log("3");
+        await Task.Run(() => KgImporter.CreateGraphFromCSVContent(csvText));
+        Debug.Log("4");
+        semaphore = true;
+    }
+
+    //to avoid null errors on first spawn
+    //and confusion with old nodes when creating subgraph
+    //make separate funcion to reset everyreference to old graph 
+    // before generating new subgraph
+    public void resetEverything()//dachiamare prima di csvretreive 
+    {
+        //make funciotn in kg importer to clear its own graph data structures
+        //to avoid confusion when adding subgraph
+        KgImporter.ClearTableAndGraph();       
+        //same with graph container
+        GraphCont.ClearGraph();
+
+        //celar all lists first and then create new
+        spawnedNodes.Clear();
+        toSpawnNodes.Clear();
+        toSpawnEdges.Clear();
+        openNodes.Clear();
+        closedNodes.Clear();
+
+    }
+
+
     
     Vector3 GetCentralPosition()
     {
@@ -98,8 +130,7 @@ public class MPGraphGenerator : MonoBehaviourPun
     }
     
     void InitDataStructures()
-    {
-        spawnedNodes = new List<SpawnedNode>();
+    {   spawnedNodes = new List<SpawnedNode>();
         toSpawnNodes = new List<KGNode>();      
         toSpawnNodes.AddRange(KgImporter.Graph.Nodes);
         toSpawnEdges = new List<KGEdge>();
@@ -254,7 +285,8 @@ public class MPGraphGenerator : MonoBehaviourPun
     public void GenerateGraphFromNode(GameObject spawnpoint)
     {
         InitDataStructures();
-        
+        KgImporter.printTable();//test
+
         while (spawnedNodes.Count < MaxNodes && spawnedNodes.Count < KgImporter.Graph.Nodes.Count)
         {
             SpawnedNode firstNode; 
