@@ -54,7 +54,7 @@ public class MPGraphGenerator : MonoBehaviourPun
     public GraphicsProfileManager ProfilesManager;
 
     public KnowledgeGraphImporter KgImporter;
-    private List<SpawnedNode> spawnedNodes;
+    public List<SpawnedNode> spawnedNodes;
     private List<KGNode> toSpawnNodes;
     private List<KGEdge> toSpawnEdges;
     private List<SpawnedNode> openNodes;
@@ -282,17 +282,19 @@ public class MPGraphGenerator : MonoBehaviourPun
     }
 
 
-    public void GenerateGraphFromNode(GameObject spawnpoint)
-    {
+    public void GenerateGraphFromNode(SpawnedNode spawnpoint)
+    {  
         InitDataStructures();
-        KgImporter.printTable();//test
+        
+        // Add spawnpoint back to spawnedNodes so SpawnEdge can find it
+        spawnedNodes.Add(spawnpoint);
 
-        while (spawnedNodes.Count < MaxNodes && spawnedNodes.Count < KgImporter.Graph.Nodes.Count)
+        while (spawnedNodes.Count <= MaxNodes && spawnedNodes.Count < KgImporter.Graph.Nodes.Count)
         {
             SpawnedNode firstNode; 
             KGNode first = toSpawnNodes.FirstOrDefault();
             if(first != null)
-                firstNode= SpawnNode(first, spawnpoint.transform.position);
+                firstNode = SpawnNode(first, spawnpoint.GO.transform.position);
             else{
                 Debug.LogError("No nodes to spawn");
                 return;
@@ -300,7 +302,19 @@ public class MPGraphGenerator : MonoBehaviourPun
             if (firstNode != null)
             {
                 openNodes.Add(firstNode);
-                while (openNodes.Count > 0 && spawnedNodes.Count < MaxNodes)
+                
+                // Create edge between spawnpoint and firstNode AFTER firstNode is spawned
+                if (closedNodes.Count == 0)
+                {
+                    KGEdge newEdge = new KGEdge();
+                    newEdge.IDNode1 = spawnpoint.Node.ID;
+                    newEdge.IDNode2 = firstNode.Node.ID;
+                    newEdge.Label = "relatedTo";
+                    toSpawnEdges.Add(newEdge);
+                    SpawnEdge(newEdge);
+                }
+                
+                while (openNodes.Count > 0 && spawnedNodes.Count <= MaxNodes)
                 {
                     SpawnedNode curNode = openNodes[0];
                     List<SpawnedNode> newNodes;
@@ -318,9 +332,7 @@ public class MPGraphGenerator : MonoBehaviourPun
                     closedNodes.Add(curNode);
                 }
             }
-
         }
-        
     }
 
     

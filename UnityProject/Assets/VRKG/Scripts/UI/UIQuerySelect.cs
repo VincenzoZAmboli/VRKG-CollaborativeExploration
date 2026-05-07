@@ -3,6 +3,7 @@ using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using TMPro;
 using System.Xml;
 using System.Dynamic;
@@ -219,32 +220,46 @@ public class UIQuerySelect : MonoBehaviour
  
             //Esecuzione query
             reqHandler.SendSparqlRequest(selected_query.sparqle_query,
+                
                 async onSuccess=>{
                     infoText.text = "Query executed!\nGenerating graph...";
                     Debug.Log("QUERY RESULT : \n"+ onSuccess);
-                    //graph gen??
-                    //trovare modo per far partire gen da nodo corrente
-                    generator.resetEverything();//testing if this avoids confusion when adding subgrap
-                    await generator.OnCsvRetrievedAsync(onSuccess);//aggiungere controllo su formato query?
-                    generator.GenerateGraphFromNode(focused_node);
-
-                    infoText.text = "Graph generated!";
-
+                    await GraphGen(onSuccess);
                     available_queries.RemoveAt(qindex);
-                    
                     //riattiva 
                     Invoke("ReactivateButtons", 5f);
                     updateList();
                 },
-
-                onError=>{Debug.LogError(onError);
-                infoText.text = "Query failed!";
-                //riattiva 
-                Invoke("ReactivateButtons", 3f);
-                }
-                ); 
-
+                
+                onError=>{
+                    Debug.LogError(onError);
+                    infoText.text = "Query failed!";
+                    //riattiva 
+                    Invoke("ReactivateButtons", 3f);
+                    }
+            ); 
         }
     }
+
+
+    public async Task GraphGen(string csv)
+    {
+        //before resetting graph save spawn point node from cuurr cragh
+        //so i can create edge between it and first node of new subgraph
+        SpawnedNode spawnPointNode = generator.spawnedNodes.FirstOrDefault(n => n.GO == focused_node);
+        if (spawnPointNode == null)
+        {
+            Debug.LogError("Spawn point node not found");
+            return;
+        }
+        
+        generator.resetEverything();//testing if this avoids confusion when adding subgrap
+        await generator.OnCsvRetrievedAsync(csv);//aggiungere controllo su formato query?
+        generator.GenerateGraphFromNode(spawnPointNode);
+
+        infoText.text = "Graph generated!";
+
+    }
+
 
 }
