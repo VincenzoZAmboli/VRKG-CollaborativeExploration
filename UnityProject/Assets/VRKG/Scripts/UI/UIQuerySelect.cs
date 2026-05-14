@@ -10,6 +10,8 @@ using System.Dynamic;
 using System.Diagnostics;
 
 using Debug = UnityEngine.Debug;
+using System.Security.Cryptography.X509Certificates;
+using System.Xml.Linq;
 //using System.Threading.Tasks.Dataflow;
 
 
@@ -64,15 +66,14 @@ public class UIQuerySelect : MonoBehaviour
     private List<UIQuery> available_queries;
     private RequestHandler reqHandler;
     private GameObject focused_node;
+
+    public SpawnedNode spawnPointNode;
    
     private void Awake()
     {
         buttons = new List<UIQueryButton>();
         available_queries = new List<UIQuery>();
         reqHandler = gameObject.AddComponent<RequestHandler>();
-
-
-        
 
 /////////////////////
 /// FORMATO QUERY DEVE ESSERE:
@@ -110,12 +111,8 @@ public class UIQuerySelect : MonoBehaviour
         available_queries.Add(test);
 ////////////////////////////////////
         
-        
-        
+}
     
-    }
-    
-
 
     IEnumerator Start()
     {
@@ -171,6 +168,10 @@ public class UIQuerySelect : MonoBehaviour
     public void OnNodeSelected(GameObject node)
     {
         focused_node= node;//4later query
+        spawnPointNode = generator.spawnedNodes.FirstOrDefault(n => n.GO == focused_node);
+
+        available_queries.Add(SparqlGenerator(spawnPointNode.Node.ID,"sottoclasse"));
+//add different versions for different shit
         gameObject.SetActive(true);
         updateList();
 
@@ -192,6 +193,9 @@ public class UIQuerySelect : MonoBehaviour
 
     public void OnNodeUnselected()
     {
+        //remove unselected queries (where UIquery.nodeid== spawnpintnode.id)
+        available_queries.RemoveAll(q => q.nodeID == spawnPointNode.Node.ID);
+        updateList();
         gameObject.SetActive(false);
     }
 
@@ -246,7 +250,6 @@ public class UIQuerySelect : MonoBehaviour
     {
         //before resetting graph save spawn point node from cuurr cragh
         //so i can create edge between it and first node of new subgraph
-        SpawnedNode spawnPointNode = generator.spawnedNodes.FirstOrDefault(n => n.GO == focused_node);
         if (spawnPointNode == null)
         {
             Debug.LogError("Spawn point node not found");
@@ -261,5 +264,30 @@ public class UIQuerySelect : MonoBehaviour
 
     }
 
+
+
+    public UiQuery SparqlGenerator(string entityID,string type)
+    {
+        string skeleton= "SELECT DISTINCT (<{0}> AS ?Subject) ?SubjectLabel "+ 
+        "(?CleanComment AS ?SubjectComment) ({1} AS ?Predicate) ?PredicateLabel "+
+        " ?Object ?ObjectLabel  WHERE {{ <{0}> {1} ?Object . <{0}> rdfs:label ?SubjectLabel . " +
+        " OPTIONAL {{ <{0}> {2} ?RawComment . FILTER(lang(?RawComment) = 'en') " +
+        " BIND(REPLACE(STR(?RawComment), ';', ',') AS ?CleanComment) }} " +
+        " {3} rdfs:label ?PredicateLabel . ?Object rdfs:label ?ObjectLabel . "+
+        " FILTER(lang(?SubjectLabel) = 'en') " +
+        " FILTER(lang(?PredicateLabel) = 'en') " +
+        "FILTER(lang(?ObjectLabel) = 'en') }} LIMIT 10" ;
+
+        skeleton= skeleton.Replace("{0}", entityID);//etc..
+
+        UIQuery GeneratedQuery;
+        GeneratedQuery=new UIQuery("da comporre");
+//comporre query in base a tipo e id entità
+
+        GeneratedQuery.Title=type;
+        GeneratedQuery.nodeID=entityID;
+        
+        return GeneratedQuery;
+    }
 
 }

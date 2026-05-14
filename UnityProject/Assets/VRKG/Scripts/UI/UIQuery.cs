@@ -16,6 +16,7 @@ public class QueryEntry //Indispensabile?
 
 public class UIQuery{
     public string Title; // serve x ui Prendere nome Predicate?
+    public string nodeID; //per identificare query -selzionabili/da rimuovere- su una specifica entità
     public string sparqle_query;//da rimuovere tutto?    
     public QueryEntry entry; // Necessario x gen
     public UIQuery(string query){
