@@ -224,7 +224,7 @@ public class UIQuerySelect : MonoBehaviour
                 async onSuccess=>{
                     infoText.text = "Query executed!\nGenerating graph...";
                     Debug.Log("QUERY RESULT : \n"+ onSuccess);
-                    await GraphGen(onSuccess);
+                    await GraphGen(onSuccess,selected_query.Title);
                     available_queries.RemoveAt(qindex);
                     //riattiva 
                     Invoke("ReactivateButtons", 5f);
@@ -242,7 +242,7 @@ public class UIQuerySelect : MonoBehaviour
     }
 
 
-    public async Task GraphGen(string csv)
+    public async Task GraphGen(string csv, string label)
     {
         //before resetting graph save spawn point node from cuurr cragh
         //so i can create edge between it and first node of new subgraph
@@ -255,7 +255,7 @@ public class UIQuerySelect : MonoBehaviour
         
         generator.resetEverything();//testing if this avoids confusion when adding subgrap
         await generator.OnCsvRetrievedAsync(csv);//aggiungere controllo su formato query?
-        generator.GenerateGraphFromNode(spawnPointNode);
+        generator.GenerateGraphFromNode(spawnPointNode,label);
 
         infoText.text = "Graph generated!";
 
