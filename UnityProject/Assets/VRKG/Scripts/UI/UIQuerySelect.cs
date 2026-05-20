@@ -12,6 +12,7 @@ using System.Diagnostics;
 using Debug = UnityEngine.Debug;
 using System.Security.Cryptography.X509Certificates;
 using System.Xml.Linq;
+using System.Runtime.InteropServices;
 //using System.Threading.Tasks.Dataflow;
 
 
@@ -68,6 +69,12 @@ public class UIQuerySelect : MonoBehaviour
     private GameObject focused_node;
 
     public SpawnedNode spawnPointNode;
+    private int query_limit; 
+    private Query_attributes chosen_endpoint;
+    public WDatt wikidata_attributes;
+    public DBPatt dbpedia_attribures;
+///dopo aggiungi ui x selezione endpoint
+
    
     private void Awake()
     {
@@ -135,6 +142,14 @@ public class UIQuerySelect : MonoBehaviour
         if(infoText == null){Debug.Log("Textnotfound");}
 
 
+        wikidata_attributes= new WDatt();
+        dbpedia_attribures= new DBPatt();
+
+///////remove later when thay become ui pieces
+UiChooseEndpoint(wikidata_attributes);
+UiSetQueryLimit(10);
+//
+
         gameObject.SetActive(false);
         QueryInfo.SetActive(false);
 
@@ -165,13 +180,32 @@ public class UIQuerySelect : MonoBehaviour
         buttons[index] = new UIQueryButton{Parent = obj, Text = txt};
     }
 
+///////////////////////////////////////////////////////////////////////
+    public void UiChooseEndpoint(Query_attributes endpoint)
+    {
+        chosen_endpoint=endpoint;
+    }
+///implement
+    public void UiSetQueryLimit(int limit)
+    {
+        query_limit=limit;
+    }
+///////////////////////////////////////////////////////////////////////////
+
+
     public void OnNodeSelected(GameObject node)
     {
         focused_node= node;//4later query
         spawnPointNode = generator.spawnedNodes.FirstOrDefault(n => n.GO == focused_node);
+        string nodeid= spawnPointNode.Node.ID;
+        Debug.Log("Selected node ID: "+ nodeid);
+/// aggiungi criterio selezione x cui su alcuni nodi certe query non si possono eseguire  
+/// ex: flag su nodo "vicolo cieco" di modo che le query che restituirebbero res. nullo non appaiono proprio
+/// 
+        available_queries.Add(SparqlGenerator(nodeid,chosen_endpoint,query_limit)); //default query (typeof)
+        available_queries.Add(SparqlGenerator(nodeid,chosen_endpoint,query_limit,false,true));//subclass
+        
 
-        available_queries.Add(SparqlGenerator(spawnPointNode.Node.ID,"sottoclasse"));
-//add different versions for different shit
         gameObject.SetActive(true);
         updateList();
 
@@ -265,10 +299,16 @@ public class UIQuerySelect : MonoBehaviour
     }
 
 
+    //xfarlo funzionare ho bisogno di un modo per conoscere l'intero ID del rispettivo nodo
+    //trovare modo di passarlo fino a questo livello 
+    // (es. aggiungendo campo ID a SpawnedNode e assegnandolo in GraphGen quando creo nodo) ?
 
-    public UiQuery SparqlGenerator(string entityID,string type)
+
+
+
+    public UIQuery SparqlGenerator(string entityID, Query_attributes endpoint_attributes, int limit, bool specific =false, bool predicate_subclass = false)
     {
-        string skeleton= "SELECT DISTINCT (<{0}> AS ?Subject) ?SubjectLabel "+ 
+        string generic_skeleton= "SELECT DISTINCT (<{0}> AS ?Subject) ?SubjectLabel "+ 
         "(?CleanComment AS ?SubjectComment) ({1} AS ?Predicate) ?PredicateLabel "+
         " ?Object ?ObjectLabel  WHERE {{ <{0}> {1} ?Object . <{0}> rdfs:label ?SubjectLabel . " +
         " OPTIONAL {{ <{0}> {2} ?RawComment . FILTER(lang(?RawComment) = 'en') " +
@@ -276,13 +316,35 @@ public class UIQuerySelect : MonoBehaviour
         " {3} rdfs:label ?PredicateLabel . ?Object rdfs:label ?ObjectLabel . "+
         " FILTER(lang(?SubjectLabel) = 'en') " +
         " FILTER(lang(?PredicateLabel) = 'en') " +
-        "FILTER(lang(?ObjectLabel) = 'en') }} LIMIT 10" ;
+        "FILTER(lang(?ObjectLabel) = 'en') }} LIMIT " + limit.ToString() ;
 
-        skeleton= skeleton.Replace("{0}", entityID);//etc..
+        string specific_skeleton="";//specific for now is just neighbours
 
-        UIQuery GeneratedQuery;
-        GeneratedQuery=new UIQuery("da comporre");
-//comporre query in base a tipo e id entità
+        string compose_query;
+        string type;
+        if(specific)
+            compose_query=specific_skeleton;
+        else
+            compose_query=generic_skeleton;
+        compose_query= compose_query.Replace("{0}", entityID);//etc..
+
+        compose_query=compose_query.Replace("{2}",endpoint_attributes.Descrizione);
+        compose_query=compose_query.Replace("{3}",endpoint_attributes.Tipo);
+        if(predicate_subclass) //default predicate typeof
+        {
+            compose_query=compose_query.Replace("{1}",endpoint_attributes.Sottoclasse);
+            type="Sottoclasse";
+        }
+        else
+        {
+            compose_query=compose_query.Replace("{1}",endpoint_attributes.Tipo);
+            type="Tipo di entità";
+        }
+
+
+        UIQuery GeneratedQuery = new UIQuery(compose_query);
+ 
+    //comporre query in base a tipo e id entità
 
         GeneratedQuery.Title=type;
         GeneratedQuery.nodeID=entityID;

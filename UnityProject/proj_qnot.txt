@@ -1,22 +1,17 @@
-Genera solo nodi senza archi, e con gli elementi del grafo precedente 
 
 
 
 //da fare
+scegliere predicati per spawn
+rendi indipendente da endpoint
 
---struttura query nel Nostro formato-
---Generazione Grafo
-
-
-
+!!!implementa Language processing pyhton txt-2 sparql
 
 
 
-mpgen/ kg gen ?? si possono unire?
 
---func x new node
 
---come effettuo query su grafo già esistente ?
-	-add testnode	
-	-remove nodes con criterio
-	-
+//low priority
+
+ui x limite query
+ui x scelta endpoint
