@@ -201,12 +201,17 @@ public class KnowledgeGraphImporter : MonoBehaviour
         return outputGrid;
     }
 
-    // splits a CSV row 
+    // splits a CSV row safely using the named group "x"
+    //modificato per salvare id effettivo dell'entità x eseguire query dopo
+    //Cambiare in graphgenerator l'uso Id/Label mostrato sopra gli SpawnedNodes?
+    
     static string[] SplitCsvLine(string line)
     {
         return (from System.Text.RegularExpressions.Match m in System.Text.RegularExpressions.Regex.Matches(line,
-                @"\s*(?:""(?<x>[^""]*(""""[^""]*)*)""\s*|(?<x>[^,;]*))(?:[;,]|$)",
-                System.Text.RegularExpressions.RegexOptions.ExplicitCapture)
-            select m.Groups[1].Value).ToArray();
+            @"\s*(?:""(?<x>[^""]*(""""[^""]*)*)""\s*|(?<x>[^,;]*))(?:[;,]|$)",
+            System.Text.RegularExpressions.RegexOptions.ExplicitCapture)
+        select m.Groups["x"].Value).ToArray(); // <-- CHANGED FROM Groups[1] TO Groups["x"]
     }
+
+
 }
