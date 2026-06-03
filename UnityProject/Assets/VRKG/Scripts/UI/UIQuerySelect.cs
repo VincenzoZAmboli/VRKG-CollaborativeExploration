@@ -116,22 +116,6 @@ public class UIQuerySelect : MonoBehaviour
         test.Title = "Wikidata connection test";
         /////////////RIMUOVERE TEST quando hai trovato modo di inserire query dinamicamente con criterio di scelta
         available_queries.Add(test);
-
-
-        UiQuery test2 = new UIQuery("SELECT ?Subject ?SubjectLabel (?CleanComment AS ?SubjectComment) ?Predicate ?PredicateLabel ?Object ?ObjectLabel "+
-"WHERE {{ SELECT DISTINCT ?Subject WHERE {"+ 
-    "?Subject rdf:type dbo:Person ;"+
-    " dbo:birthPlace dbr:Italy .}LIMIT 10  }"+
-
-  "BIND(rdf:type AS ?Predicate) BIND(dbo:Person AS ?Object)"+
-
-  "BIND(REPLACE(STR(?RawComment), ';', ',') AS ?CleanComment)}");
-        test2.Title = "DBpedia connection test";
-        available_queries.Add(test2);
-
-
-
-
 ////////////////////////////////////
         
 }
@@ -162,8 +146,8 @@ public class UIQuerySelect : MonoBehaviour
         dbpedia_attribures= new DBPatt();
 
 ///////remove later when thay become ui pieces
-    UiChooseEndpoint(dbpedia_attribures);//uso dbpedia come default
-    UiSetQueryLimit(10);
+UiChooseEndpoint(wikidata_attributes);
+UiSetQueryLimit(10);
 //
 
         gameObject.SetActive(false);
@@ -213,25 +197,13 @@ public class UIQuerySelect : MonoBehaviour
     {
         focused_node= node;//4later query
         spawnPointNode = generator.spawnedNodes.FirstOrDefault(n => n.GO == focused_node);
-        //rimuovi parentesi uncinate attorno stringa se presenti
         string nodeid= spawnPointNode.Node.ID;
-        nodeid= nodeid.Trim('<', '>');
-
         Debug.Log("Selected node ID: "+ nodeid);
-
-        // sceglta endpoint in base a prefisso entità ex(se iniza con wd: allora wikidata, se dbp: allora dbpedia etc..) oppure lasciare scelta a utente tramite menu a tendina
-        if(nodeid.StartsWith("wd:")|| nodeid.StartsWith("wdt:"))
-            chosen_endpoint=wikidata_attributes;
-        else if(nodeid.StartsWith("dbp:")|| nodeid.StartsWith("dbr:"))
-            chosen_endpoint=dbpedia_attribures;
-        else
-        {
-            Debug.LogWarning("Prefisso non trovato lascio endpoint default");
-        }
-
+/// aggiungi criterio selezione x cui su alcuni nodi certe query non si possono eseguire  
+/// ex: flag su nodo "vicolo cieco" di modo che le query che restituirebbero res. nullo non appaiono proprio
+/// 
         available_queries.Add(SparqlGenerator(nodeid,chosen_endpoint,query_limit)); //default query (typeof)
         available_queries.Add(SparqlGenerator(nodeid,chosen_endpoint,query_limit,false,true));//subclass
-        available_queries.Add(SparqlGenerator(nodeid,chosen_endpoint,query_limit,true));//specific query (vicini)
         
 
         gameObject.SetActive(true);
@@ -350,10 +322,8 @@ public class UIQuerySelect : MonoBehaviour
 
         string compose_query;
         string type;
-        if(specific){
+        if(specific)
             compose_query=specific_skeleton;
-            type="Vicini";
-        }
         else
             compose_query=generic_skeleton;
         compose_query= compose_query.Replace("{0}", entityID);//etc..

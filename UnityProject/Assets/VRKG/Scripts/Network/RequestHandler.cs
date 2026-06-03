@@ -7,9 +7,7 @@ using System;
 public class RequestHandler : MonoBehaviour
 {
     // Per ora Wikidata endpoint (swappeabile con DBpedia o altri endpoint SPARQL)
-    public string wikidataEndpoint = "https://query.wikidata.org/sparql";
-    public string dbpediaEndpoint = "https://dbpedia.org/sparql";
-    public string endpointUrl;
+    public string endpointUrl = "https://query.wikidata.org/sparql";
 
     /// "sparqlQuery" plain text SPARQL query - On success ritorna sempre come stringa - altrimenti onerror
   
@@ -18,11 +16,8 @@ public class RequestHandler : MonoBehaviour
         StartCoroutine(ExecuteQuery(sparqlQuery, onSuccess, onError));
     }
 
-    private IEnumerator ExecuteQuery(string endpoint,string query, Action<string> onSuccess, Action<string> onError)
-    {   
-        endpointUrl = endpoint == "wikidata" ? wikidataEndpoint : dbpediaEndpoint;
-        
-
+    private IEnumerator ExecuteQuery(string query, Action<string> onSuccess, Action<string> onError)
+    {
         // FORZARE CSV nell'url della query funziona per entrambi o basta header??
         string fullUrl = $"{endpointUrl}?query={UnityWebRequest.EscapeURL(query)}";
 
