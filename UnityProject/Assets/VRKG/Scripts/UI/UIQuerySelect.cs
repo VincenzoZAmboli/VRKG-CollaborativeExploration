@@ -41,17 +41,18 @@ SOFTWARE.
 
  */
 
-//Test for performing queries on focused node
+
+//Esecuzione query su nodo in focus 
+
 
 [Serializable]
-public class UIQueryButton
+public class UIQueryButton 
 {
     public GameObject Parent;
     public TextMeshProUGUI Text;
 }
 
 
-//shows up on focus and shows possible queries on that node-- for now only test spawn node function
 
 public class UIQuerySelect : MonoBehaviour
 {
@@ -70,10 +71,6 @@ public class UIQuerySelect : MonoBehaviour
 
     public SpawnedNode spawnPointNode;
     private int query_limit; 
-    private Query_attributes chosen_endpoint;
-    public WDatt wikidata_attributes;
-    public DBPatt dbpedia_attribures;
-///dopo aggiungi ui x selezione endpoint
 
    
     private void Awake()
@@ -142,12 +139,8 @@ public class UIQuerySelect : MonoBehaviour
         if(infoText == null){Debug.Log("Textnotfound");}
 
 
-        wikidata_attributes= new WDatt();
-        dbpedia_attribures= new DBPatt();
-
 ///////remove later when thay become ui pieces
-UiChooseEndpoint(wikidata_attributes);
-UiSetQueryLimit(10);
+UiSetQueryLimit(20);
 //
 
         gameObject.SetActive(false);
@@ -180,12 +173,7 @@ UiSetQueryLimit(10);
         buttons[index] = new UIQueryButton{Parent = obj, Text = txt};
     }
 
-///////////////////////////////////////////////////////////////////////
-    public void UiChooseEndpoint(Query_attributes endpoint)
-    {
-        chosen_endpoint=endpoint;
-    }
-///implement
+///implement via ui??
     public void UiSetQueryLimit(int limit)
     {
         query_limit=limit;
@@ -239,7 +227,9 @@ UiSetQueryLimit(10);
         QueryInfo.SetActive(false);
     }
 
-    public void ExecuteQuery(GameObject but)
+
+    ///!!!!REFACTOR BOTTONI X SCELTA ENTITà ALLINIZIO
+    public void ExecuteQuery(GameObject but) //genera grafo con query (originalmente scelta query in base a bottone )
     {
         UIQueryButton selected_button= buttons.FirstOrDefault(b => b.Parent == but);
         
@@ -299,57 +289,51 @@ UiSetQueryLimit(10);
     }
 
 
-    //xfarlo funzionare ho bisogno di un modo per conoscere l'intero ID del rispettivo nodo
-    //trovare modo di passarlo fino a questo livello 
-    // (es. aggiungendo campo ID a SpawnedNode e assegnandolo in GraphGen quando creo nodo) ?
+//////////////////////////////////////////
+    // 1) funzione searchterm-> chiamata api->return json parsato passato a ui come opzioni
+
+    /// 2)  scelta opzione in ui-> return entityid
+    ///questo x gen da zero, da qua in poi è uguale x nodo già esistente con id
 
 
-
-
-    public UIQuery SparqlGenerator(string entityID, Query_attributes endpoint_attributes, int limit, bool specific =false, bool predicate_subclass = false)
+///////////AGGIUNGERE GESTIONE ERRORE XOGNI STEP PIPELINE
+    public string ExplorationQuery(string entityID, string entityLabel)//prende entità di partenza e esegue pipeline di esplora<ione 
     {
-        string generic_skeleton= "SELECT DISTINCT (<{0}> AS ?Subject) ?SubjectLabel "+ 
-        "(?CleanComment AS ?SubjectComment) ({1} AS ?Predicate) ?PredicateLabel "+
-        " ?Object ?ObjectLabel  WHERE {{ <{0}> {1} ?Object . <{0}> rdfs:label ?SubjectLabel . " +
-        " OPTIONAL {{ <{0}> {2} ?RawComment . FILTER(lang(?RawComment) = 'en') " +
-        " BIND(REPLACE(STR(?RawComment), ';', ',') AS ?CleanComment) }} " +
-        " {3} rdfs:label ?PredicateLabel . ?Object rdfs:label ?ObjectLabel . "+
-        " FILTER(lang(?SubjectLabel) = 'en') " +
-        " FILTER(lang(?PredicateLabel) = 'en') " +
-        "FILTER(lang(?ObjectLabel) = 'en') }} LIMIT " + limit.ToString() ;
+        string predicateList;//xrisulato init vvv
+        string explore="SELECT DISTINCT ?p ?pLabel WHERE { " +entityID + " ?prop ?statement . " +      
+        " ?p wikibase:directClaim ?prop . SERVICE wikibase:label { bd:serviceParam wikibase:language 'it','en'. } }";
+        //query x ottenere tutti i predicacati
 
-        string specific_skeleton="";//specific for now is just neighbours
-
-        string compose_query;
-        string type;
-        if(specific)
-            compose_query=specific_skeleton;
-        else
-            compose_query=generic_skeleton;
-        compose_query= compose_query.Replace("{0}", entityID);//etc..
-
-        compose_query=compose_query.Replace("{2}",endpoint_attributes.Descrizione);
-        compose_query=compose_query.Replace("{3}",endpoint_attributes.Tipo);
-        if(predicate_subclass) //default predicate typeof
+        reqHandler.SendSparqlRequest(explore,
+        onSuccess =>
         {
-            compose_query=compose_query.Replace("{1}",endpoint_attributes.Sottoclasse);
-            type="Sottoclasse";
-        }
-        else
-        {
-            compose_query=compose_query.Replace("{1}",endpoint_attributes.Tipo);
-            type="Tipo di entità";
-        }
+            Debug.Debug.Log("PIPELINE1: "+ onSuccess);
+            predicateList=reqHandler.GetSignificantPredicates(entityLabel,onSuccess);//chiamata llm   
+        }, onError=>{Debug.Log("PIPELINE1 QUERY FALLITA");});
+
+        string[] Predicates;
+        if (predicateList == null || predicateList == "error")
+        {Debug.Log("PIPELINE2 FALLITA"); return "";}//interrompo qua x rendere op atomica
+        else{
+            Debug.Log("PIPELINE2: "+predicateList);
+            Predicates=predicateList.Split(',',20);
+        }//se nulla mi ha fermato fin qua tutto apposto??
+        //ci potrebbero stare altre cose di predicatelist che non vanno bene
+            
+        //abbiamo tutto x fare query finale
 
 
-        UIQuery GeneratedQuery = new UIQuery(compose_query);
- 
-    //comporre query in base a tipo e id entità
+        string final = "";
+        ///da cambiare
 
-        GeneratedQuery.Title=type;
-        GeneratedQuery.nodeID=entityID;
-        
-        return GeneratedQuery;
+        //foreach( string p in predicateList)
+            //replace {EXP} with subject - p- obj
+       
+       
+
+       return final;
     }
 
+
+    
 }
