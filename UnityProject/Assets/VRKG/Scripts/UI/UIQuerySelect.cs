@@ -187,12 +187,6 @@ UiSetQueryLimit(20);
         spawnPointNode = generator.spawnedNodes.FirstOrDefault(n => n.GO == focused_node);
         string nodeid= spawnPointNode.Node.ID;
         Debug.Log("Selected node ID: "+ nodeid);
-/// aggiungi criterio selezione x cui su alcuni nodi certe query non si possono eseguire  
-/// ex: flag su nodo "vicolo cieco" di modo che le query che restituirebbero res. nullo non appaiono proprio
-/// 
-        available_queries.Add(SparqlGenerator(nodeid,chosen_endpoint,query_limit)); //default query (typeof)
-        available_queries.Add(SparqlGenerator(nodeid,chosen_endpoint,query_limit,false,true));//subclass
-        
 
         gameObject.SetActive(true);
         updateList();
@@ -297,43 +291,59 @@ UiSetQueryLimit(20);
 
 
 ///////////AGGIUNGERE GESTIONE ERRORE XOGNI STEP PIPELINE
-    public string ExplorationQuery(string entityID, string entityLabel)//prende entità di partenza e esegue pipeline di esplora<ione 
+    public async Task<string> ExplorationQuery(string entityID)
+    //prende entità di partenza(id) e esegue prima query esplorativa, restituisce il risultato della query come stringa
     {
-        string predicateList;//xrisulato init vvv
         string explore="SELECT DISTINCT ?p ?pLabel WHERE { " +entityID + " ?prop ?statement . " +      
         " ?p wikibase:directClaim ?prop . SERVICE wikibase:label { bd:serviceParam wikibase:language 'it','en'. } }";
         //query x ottenere tutti i predicacati
 
+        var tcs = new TaskCompletionSource<string>();
         reqHandler.SendSparqlRequest(explore,
-        onSuccess =>
-        {
-            Debug.Debug.Log("PIPELINE1: "+ onSuccess);
-            predicateList=reqHandler.GetSignificantPredicates(entityLabel,onSuccess);//chiamata llm   
-        }, onError=>{Debug.Log("PIPELINE1 QUERY FALLITA");});
+            onSuccess => {
+                Debug.Log("PIPELINE1: " + onSuccess);
+                tcs.TrySetResult(onSuccess);
+            },
+            onError => {
+                Debug.Log("PIPELINE1 QUERY FALLITA: " + onError);
+                tcs.TrySetException(new System.Exception(onError));
+            }
+        );
 
-        string[] Predicates;
-        if (predicateList == null || predicateList == "error")
-        {Debug.Log("PIPELINE2 FALLITA"); return "";}//interrompo qua x rendere op atomica
-        else{
-            Debug.Log("PIPELINE2: "+predicateList);
-            Predicates=predicateList.Split(',',20);
-        }//se nulla mi ha fermato fin qua tutto apposto??
-        //ci potrebbero stare altre cose di predicatelist che non vanno bene
-            
-        //abbiamo tutto x fare query finale
-
-
-        string final = "";
-        ///da cambiare
-
-        //foreach( string p in predicateList)
-            //replace {EXP} with subject - p- obj
-       
-       
-
-       return final;
+        return await tcs.Task;
     }
 
 
+    public async Task<string[]> GetPredicatesFromRes(string expResult, string entityLabel)
+    //prende il risultato query esplorativa, esegue chiamata al modello per prendere predicati importanti e li restituisce
+    {
+        string[] predicates = reqHandler.GetSignificantPredicates(entityLabel, expResult);
+        return await Task.FromResult(predicates);
+    }
+    
+
+    public async Task<string> ExplorationPipeline(string entityID, string entityLabel)
+    //esegue chiamate asincrone delle funzioni di sparql e ollama, compone query finale e la restituisce come stringa
+    {
+        string valuesClause;
+        //exe query esplorativa 
+        string res = await ExplorationQuery(entityID);
+        //estrai i predicati
+        string[] preds = await GetPredicatesFromRes(res, entityLabel);
+
+        if(preds != null && preds.Length > 0)
+            valuesClause = string.Join(" ", preds.Select(p => $"wd:{p}"));
+        else
+            return "Error: No significant predicates found for the entity."; 
+
+        //componi query finale
+        return "string sparqlQuery = $@ " +
+        " SELECT ?subject ?subjectLabel (?subjectDescription AS ?subjectComment) ?predicate (?propertyLabel AS ?predicateLabel) ?object ?objectLabel " +
+        " WHERE {{ BIND(wd:{entityId} AS ?subject) . VALUES ?property {{ {valuesClause} }} . " +
+        " ?property wikibase:directClaim ?predicate . ?subject ?predicate ?object . SERVICE wikibase:label {{ bd:serviceParam wikibase:language 'it,en'. }} }} " ;
+
+    }
     
 }
+    
+

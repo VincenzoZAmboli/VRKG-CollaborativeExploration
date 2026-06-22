@@ -5,6 +5,7 @@ using UnityEngine.Networking;
 using System;
 using System.Security.Cryptography.X509Certificates;
 
+
 public class RequestHandler : MonoBehaviour
 {
     //Wikidata endpoint 
@@ -12,20 +13,36 @@ public class RequestHandler : MonoBehaviour
     //endpoint ricerca wkdata
     public string searchAPI="https://www.wikidata.org/w/api.php?action=wbsearchentities&format=json&language=it&search=";
     //endpoint ollama
-    string ollamaUrl = "http://localhost:11434/api/generate";
-    string jsonPayload = @"{
+    public string ollamaUrl = "http://localhost:11434/api/generate";
+    public string jsonPayload = @"{
     ""model"": ""qwen3.5:9b"", 
     ""prompt"": ""Dato un csv di due colonne PredicateID-PredicateLabel, guardando il significato rispettivo di ogni predicato, seleziona min.5 max.15 ID dei predicati più importanti e significativi per l'entità {0} , NO INTRO/OUTRO TEXT, NON MODIFICARE IN ALCUN MODO INPUT, RIPORTA ID SELEZIONATI ESATTAMENTE COME FORNITI, OUTPUT FINALE: SOLO ID SEPARATI DA VIRGOLE. RISPONDI VELOCEMENTE SU QUESTO CSV: {1} "", 
     ""stream"": false,
     ""think"": false }";
 //da adattare tutto x generare query complesse o lasciamo stare e solo esplorazione coadiuvata da llm locale?
 
+//chiama coroutine e ritorna direttamente array predicati 
+    public string[] GetSignificantPredicates(string subject, string csv)
+    {   string[] predicates= {""};
+        StartCoroutine(OllamaConnection(subject,csv,
+        onSuccess =>
+        {
+            if(System.Text.RegularExpressions.Regex.IsMatch(onSuccess, @"^(\s+,)*\s+$"))
+                predicates= onSuccess.Split(",");
+            else
+                Debug.Log("gwen ha fatto qualche stronzata");
+        }, onError=>{
+            Debug.Log("LLMNOTCONNECTED: "+ onError);
+            //debug log e retry
+        }));
+        return predicates;
+    }
+
 
 
 //invia prompt modello locale, ricevei lista predicati  
-    public string GetSignificantPredicates(string subject, string csv)
+    private IEnumerator OllamaConnection(string subject, string csv , Action<string> onSuccess, Action<string> onError)
     {
-        string result;
         string finalPayload= jsonPayload.Replace("{0}",subject);
         finalPayload=finalPayload.Replace("{1}",csv);
 
@@ -36,57 +53,48 @@ public class RequestHandler : MonoBehaviour
             request.downloadHandler = new DownloadHandlerBuffer();
             request.SetRequestHeader("Content-Type", "application/json");
             yield return request.SendWebRequest();
-    
-            result=request.downloadHandler.text;
 
             switch (request.result)
             {
                 case UnityWebRequest.Result.ConnectionError:
                 case UnityWebRequest.Result.DataProcessingError:
                 case UnityWebRequest.Result.ProtocolError:
-                    Debug.LogError($"LLMError: {request.error}\nResponse: {result}");
-                    result="error";
+                    onError?.Invoke($"Error: {request.error}\nResponse: {request.downloadHandler.text}");
                     break;
                 case UnityWebRequest.Result.Success:
-                    Debug.Log($"LLMResponse: {result}");
-                    //controllo se formato è corretto? se no ritorno error
-                    //result= System.Text.RegularExpressions.Regex.IsMatch(result, @"^(\s+,)*\s+$")? result : "error";            
+                    Debug.Log("LLMCONNECTED");
+                    onSuccess?.Invoke(request.downloadHandler.text);
                     break;
             }
         }
-        return result;
     }
     
-
-    //ricerca enità x nome tramite wikidata api
-    public string WDsearch(string EntityName)
+    public void WikiSearch(string Entity)
     {
-        string result;
-
+        WDsearch(Entity,onSuccess=>{}, onError=>{});
+    }
+    //ricerca enità x nome tramite wikidata api
+    private IEnumerator WDsearch(string EntityName,Action<string> onSuccess, Action<string> onError)
+    {
         using (UnityWebRequest request = new UnityWebRequest(searchAPI+EntityName, "POST"))
         {
             request.downloadHandler = new DownloadHandlerBuffer();
-            request.SetRequestHeader("Content-Type", "application/json");//???
             request.SetRequestHeader("User-Agent", "VRKG/1.0 (Contact: your_email@example.com)");
 
             yield return request.SendWebRequest();
-            result=request.downloadHandler.text;
-
             switch (request.result)
             {
                 case UnityWebRequest.Result.ConnectionError:
                 case UnityWebRequest.Result.DataProcessingError:
                 case UnityWebRequest.Result.ProtocolError:
-                    Debug.LogError($"WDAPIerror: {request.error}\nResponse: {result}");
-                    result="error";
+                    Debug.LogError($"WDAPIerror: {request.error}\nResponse: {request.downloadHandler.text}");
+                    onError?.Invoke(request.downloadHandler.text);
                     break;
                 case UnityWebRequest.Result.Success:
-                    Debug.Log($"WDAPIresponse: {result}");
-                    //eseguo già qua parsing json ?            
+                    onSuccess?.Invoke(request.downloadHandler.text);      
                     break;
             }
         }
-        return result;
     }
 
 
