@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.Networking;
 using System;
 using System.Security.Cryptography.X509Certificates;
+using System.Threading.Tasks;
 
 
 public class RequestHandler : MonoBehaviour
@@ -38,7 +39,35 @@ public class RequestHandler : MonoBehaviour
         return predicates;
     }
 
+    public Task<string[]> GetSignificantPredicatesAsync(string subject, string csv)
+    {
+        var tcs = new TaskCompletionSource<string[]>();
 
+        StartCoroutine(OllamaConnection(subject, csv,
+            onSuccess =>
+            {
+                if (string.IsNullOrWhiteSpace(onSuccess))
+                {
+                    tcs.TrySetResult(Array.Empty<string>());
+                    return;
+                }
+
+                string[] preds = onSuccess
+                    .Split(new[] {','}, StringSplitOptions.RemoveEmptyEntries);
+
+                for (int i = 0; i < preds.Length; i++)
+                    preds[i] = preds[i].Trim();
+
+                tcs.TrySetResult(preds);
+            },
+            onError =>
+            {
+                Debug.LogError("LLMNOTCONNECTED: " + onError);
+                tcs.TrySetException(new Exception(onError));
+            }));
+
+        return tcs.Task;
+    }
 
 //invia prompt modello locale, ricevei lista predicati  
     private IEnumerator OllamaConnection(string subject, string csv , Action<string> onSuccess, Action<string> onError)

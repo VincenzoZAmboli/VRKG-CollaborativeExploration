@@ -482,22 +482,27 @@ UiSetQueryLimit(20);
     public async Task<string[]> GetPredicatesFromRes(string expResult, string entityLabel)
     //prende il risultato query esplorativa, esegue chiamata al modello per prendere predicati importanti e li restituisce
     {
-        string[] predicates = reqHandler.GetSignificantPredicates(entityLabel, expResult);
-        return await Task.FromResult(predicates);
+        return await reqHandler.GetSignificantPredicatesAsync(entityLabel, expResult);
     }
     
 
     public async Task<string> ExplorationPipeline(string entityID, string entityLabel)
     //esegue chiamate asincrone delle funzioni di sparql e ollama, compone query finale e la restituisce come stringa
     {
-        string valuesClause;
-        //exe query esplorativa 
         string res = await ExplorationQuery(entityID);
-
         infoText.text = "Exploration query executed! Extracting significant predicates...";
-        //estrai i predicati
-        string[] preds = await GetPredicatesFromRes(res, entityLabel);
-        infoText.text = "Significant predicates extracted! Composing final query...";
+
+        string valuesClause = "";
+        string[] preds;
+        try
+        {
+            preds = await GetPredicatesFromRes(res, entityLabel);
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError("Predicate extraction failed: " + ex);
+            return $"Error: {ex.Message}";
+        }
 
         if(preds != null && preds.Length > 0)
             valuesClause = string.Join(" ", preds.Select(p => $"wd:{p}"));
