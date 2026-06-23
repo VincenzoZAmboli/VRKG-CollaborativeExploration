@@ -72,8 +72,19 @@ public class RequestHandler : MonoBehaviour
 //invia prompt modello locale, ricevei lista predicati  
     private IEnumerator OllamaConnection(string subject, string csv , Action<string> onSuccess, Action<string> onError)
     {
-        string finalPayload= jsonPayload.Replace("{0}",subject);
-        finalPayload=finalPayload.Replace("{1}",csv);
+        // Escape helper to make strings safe inside a JSON string literal
+        string EscapeForJson(string s)
+        {
+            if (s == null) return "";
+            return s.Replace("\\", "\\\\")
+                    .Replace("\"", "\\\"")
+                    .Replace("\r", "\\r")
+                    .Replace("\n", "\\n")
+                    .Replace("\t", "\\t");
+        }
+
+        string finalPayload= jsonPayload.Replace("{0}", EscapeForJson(subject));
+        finalPayload=finalPayload.Replace("{1}", EscapeForJson(csv));
 
         using (UnityWebRequest request = new UnityWebRequest(ollamaUrl, "POST"))
         {
