@@ -8,7 +8,7 @@ using TMPro;
 using System.Xml;
 using System.Dynamic;
 using System.Diagnostics;
-
+using Newtonsoft.Json.Linq;
 using Debug = UnityEngine.Debug;
 using System.Security.Cryptography.X509Certificates;
 using System.Xml.Linq;
@@ -50,6 +50,27 @@ public class UIQueryButton
 {
     public GameObject Parent;
     public TextMeshProUGUI Text;
+
+    public string operation; 
+    // LookupEntity - esegue ricerca del label inserito (per ora HC) su api wikidata (una volta rimosso questo btt non torna +)
+    // ShowEntity - rappresenta un obj UIEntity- mostra descr.- disattiva tutti gli altri bottoni tranne i prossimi 2
+    //          UnshowEntity  - descrizione rimossi - tornano tutti i bottoni
+    //          SelectEntity - fa partire la pipeline di ricerca - aggiornamento tramite TMP
+    // ExecuteQuery- alla fine se tutto va bene exe- e gen grafo.
+
+    public UIEntity uiEntity;//obv può essere nullo se non c'entra con quell'operzione
+}
+
+public class UIEntity
+{
+    public string ID,Label,Description;
+    //build constructior for UIEntity
+    public UIEntity(string id, string label, string description)
+    {
+        ID = id;
+        Label = label;
+        Description = description;
+    }
 }
 
 
@@ -62,8 +83,11 @@ public class UIQuerySelect : MonoBehaviour
     public MPGraphGenerator generator;//local graph gen taken from 
     private GameObject UiContainer;
     private GameObject QueryInfo;
+    public GameObject DescriptionPanel; // ui piece assigned from editor
+    public GameObject DescriptionText; // modifiable text of said ui piece assigned from editor
     private TextMeshProUGUI infoText;
     private List<UIQueryButton> buttons;
+
     private QueryEntry queryEntryT;
     private List<UIQuery> available_queries;
     private RequestHandler reqHandler;
@@ -78,22 +102,11 @@ public class UIQuerySelect : MonoBehaviour
         buttons = new List<UIQueryButton>();
         available_queries = new List<UIQuery>();
         reqHandler = gameObject.AddComponent<RequestHandler>();
+        
+        available_queries.Add(new UIQuery("","LookupEntity"){Title = "Lookup entity"});
 
-/////////////////////
-/// FORMATO QUERY DEVE ESSERE:
-/// (Subject,SubjectLabel,SubjectComment,Predicate,PredicateLabel,Object,ObjectLabel)
-/// 
-        // gen example query  //template generico
-      /*  UIQuery test = new UIQuery("SELECT ?subject ?subjectLabel ?subjectComment ?predicate ?predicateLabel ?object ?objectLabel WHERE { " +
-                                    "?subject ?predicate ?object. " +
-                                    "?subject rdfs:label ?subjectLabel. " +
-                                    "?subject rdfs:comment ?subjectComment. " +
-                                    "?predicate rdfs:label ?predicateLabel. " +
-                                    "?object rdfs:label ?objectLabel. " +
-                                    "FILTER(LANG(?subjectLabel) = 'en' && LANG(?predicateLabel) = 'en' && LANG(?objectLabel) = 'en') " +
-                                    "LIMIT 100");*/
-        //modo per inserimento q
 
+////////////////////////////////
         UIQuery test = new UIQuery("SELECT ?Subject ?SubjectLabel (?CleanComment AS ?SubjectComment) ?Predicate ?PredicateLabel ?Object ?ObjectLabel "+
 "WHERE {{ SELECT DISTINCT ?Subject WHERE {"+
     "?Subject wdt:P31 wd:Q5 ;"+
@@ -111,10 +124,10 @@ public class UIQuerySelect : MonoBehaviour
 
   "BIND(REPLACE(STR(?RawComment), ';', ',') AS ?CleanComment)}");
         test.Title = "Wikidata connection test";
+        test.operation = "ExecuteQuery";
         /////////////RIMUOVERE TEST quando hai trovato modo di inserire query dinamicamente con criterio di scelta
         available_queries.Add(test);
 ////////////////////////////////////
-        
 }
     
 
@@ -143,10 +156,10 @@ public class UIQuerySelect : MonoBehaviour
 UiSetQueryLimit(20);
 //
 
-        gameObject.SetActive(false);
+       // gameObject.SetActive(false); //non + adesso mi serve attivo fin dall'inizio per ricevere input da microfono e fare ricerca su wikidata
         QueryInfo.SetActive(false);
 
-        
+        updateList();
         
     }
     
@@ -198,12 +211,13 @@ UiSetQueryLimit(20);
     public void updateList()
     {
         buttons.ForEach(b => b.Parent.SetActive(false));
-        //scegli query disponibili
-        //criterio per scelta qury??
-        for(int i = 0; i < available_queries.Count; ++i)
+        
+        for(int i = 0; i < available_queries.Count; ++i)//change it so it's not sequential but based on text and operation
+
         {  //Arr out of bound err??
             buttons[i].Parent.SetActive(true); 
             buttons[i].Text.text = available_queries[i].Title;
+            buttons[i].operation= available_queries[i].operation;
         }
     }
 
@@ -221,8 +235,164 @@ UiSetQueryLimit(20);
         QueryInfo.SetActive(false);
     }
 
+    public async Task WikiSend(string ItemLabel, Action<string> onSuccess, Action<string> onError)
+    {
+        reqHandler.SendWikiRequest(ItemLabel, onSuccess, onError);
+        await Task.CompletedTask; // Await a completed task to satisfy the async method signature
 
+    }
+
+    public async Task WikiSearch(string ItemLabel)
+    //takes the given parameter (item label) performs the WD search, maps the json result to UIEntity objects
+    //than creates as many buttons with showentity as operation and  and adds them to availablequeries 
+    {
+       await WikiSend(ItemLabel,
+            onSuccess => {
+                List<UIEntity> entities = ParseWDSearchResult(onSuccess);
+                entities.ForEach(e => {
+                    UIQuery entityQuery = new UIQuery("", "ShowEntity") { Title = e.Label, uiEntity = e };
+                    available_queries.Add(entityQuery); //qua vengono aggiunte correttamente le UIEntity ai bottoni, quindi il problema non è qua, ma quando seleziono un bottone, selected_button.uiEntity è null, perchè? 
+                    Debug.Log("Added entity: " + e.Label + " with ID: " + e.ID+ " and description: " + e.Description);
+                });
+                updateList();
+            },
+            onError => {
+                Debug.LogError("WikiSearch failed: " + onError);
+            }
+        );
+        
+    }
+
+    public static List<UIEntity> ParseWDSearchResult(string jsonResponse)
+    {
+        List<UIEntity> entitiesList = new List<UIEntity>();
+
+        try
+        {
+            // Analizza la stringa JSON in un oggetto navigabile
+            JObject json = JObject.Parse(jsonResponse);
+            
+            // Accedi all'array "search" che contiene i risultati
+            JArray searchResults = (JArray)json["search"];
+
+            if (searchResults != null)
+            {
+                foreach (JToken item in searchResults)
+                {
+                    // 1. Estrazione ID (già pulito, es. "Q19970558")
+                    string id = item["id"]?.ToString();
+
+                    // 2. Estrazione Label (con fallback se mancante)
+                    string label = item["label"]?.ToString() ?? "Senza nome";
+
+                    // 3. Estrazione Description (spesso assente per entità minori)
+                    string description = item["description"]?.ToString() ?? "";
+
+                    // Creazione dell'istanza se l'ID è valido
+                    if (!string.IsNullOrEmpty(id))
+                    {
+                        UIEntity newEntity = new UIEntity(id, label, description);
+                        entitiesList.Add(newEntity);
+                    }
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            Debug.LogError("Errore durante il parsing del JSON di ricerca: " + e.Message);
+        }
+
+        return entitiesList;
+    }
+
+
+    public async Task runselectedoperation(GameObject but)
+    {
+       await selectOperation(but);
+    }
     ///!!!!REFACTOR BOTTONI X SCELTA ENTITà ALLINIZIO
+    public async Task selectOperation(GameObject but)
+    {
+        UIQueryButton selected_button= buttons.FirstOrDefault(b => b.Parent == but);
+        switch (selected_button.operation)
+        {
+            case "LookupEntity":
+                //ricevi input da microfono per ora simulato hard coded
+////////////////////////per ora inserisci qua inout ricerca hard coded poi da mic
+                await WikiSearch("Michelangelo");
+                //await function completion and remove this button permanently from available_queries
+                available_queries.RemoveAll(q => q.operation == "LookupEntity");
+                updateList();
+            break;
+            case "ShowEntity":
+                DescriptionPanel.SetActive(true); DescriptionText.GetComponent<TextMeshProUGUI>().text = "selected_button.uiEntity.Description(x ora non trova?)";
+                Debug.Log("Selected entity description: " + selected_button.uiEntity.Description);
+               // DescriptionText.GetComponent<TextMeshProUGUI>().text = selected_button.uiEntity.Description;
+                //perche non mi trova la description text, è assegnata correttamente e sostituendo selected_button.uiEntity.Description con una stringa hard coded funziona, quindi il problema è che non trova la description dell'entità selezionata
+                // , ma perchè? forse perchè non è stata mappata correttamente da json a UIEntity? 
+                // il log mostra che le UIEntity sono state mappate correttamente da json, il problema è che quando seleziono un bottone, selected_button.uiEntity.Description è null, perchè? 
+                //  quindi non trova la description dell'entità selezionata, il probelma è selected_button.uiEntity è null, perchè? perchè non è stato assegnato correttamente quando ho creato i bottoni,
+                //  quindi devo assicurarmi che quando creo i bottoni per le entità, assegno correttamente la UIEntity a selected_button.uiEntity
+                
+                
+                UIQueryButton unshowButton = new UIQueryButton
+                {
+                    Parent = but,
+                    Text = selected_button.Text,
+                    operation = "UnshowEntity",
+                    uiEntity = selected_button.uiEntity
+                };
+                UIQueryButton selectButton = new UIQueryButton
+                {
+                    Parent = but,
+                    Text = selected_button.Text,
+                    operation = "SelectEntity",
+                    uiEntity = selected_button.uiEntity
+                };//make the same two objects for unshow and select entity, add them to available_queries and update the list
+                    UIQuery unshowEntityQuery = new UIQuery("", "UnshowEntity") { Title = "Unshow Entity", uiEntity = selected_button.uiEntity };
+                    UIQuery selectEntityQuery = new UIQuery("", "SelectEntity") { Title = "Select Entity", uiEntity = selected_button.uiEntity };
+
+                available_queries.Add(unshowEntityQuery); 
+                available_queries.Add(selectEntityQuery);
+                updateList();
+                buttons.ForEach(b => b.Parent.SetActive(b.operation == "UnshowEntity" || b.operation == "SelectEntity"));
+
+                break;
+            case "UnshowEntity":
+                DescriptionPanel.SetActive(false);
+                available_queries.RemoveAll(q => q.operation == "UnshowEntity" || q.operation == "SelectEntity");
+                updateList();
+                break;
+            case "SelectEntity":
+            //remove all buttons no one excluded well' put them back when it fails
+                buttons.ForEach(b => b.Parent.SetActive(false));
+                infoText.text = "Searching for significant predicates...";
+
+
+                //start pipeline for exploration query and graph generation
+                string entityID = selected_button.uiEntity.ID;
+                string entityLabel = selected_button.uiEntity.Label;
+                Task.Run(async () =>
+                {
+                    string finalQuery = await ExplorationPipeline(entityID, entityLabel);
+                    infoText.text = "Predicati trovati! Query pronta per esecuzione";
+                    Debug.Log("Final Query: " + finalQuery);
+                    available_queries.Add(new UIQuery(finalQuery, "ExecuteQuery") { Title = "Execute Query" });
+                    updateList();
+                    
+                });
+                break;
+            case "ExecuteQuery":
+                ExecuteQuery(but); //finalmente pd
+                break;
+
+
+        }
+        
+
+
+    } 
+     
     public void ExecuteQuery(GameObject but) //genera grafo con query (originalmente scelta query in base a bottone )
     {
         UIQueryButton selected_button= buttons.FirstOrDefault(b => b.Parent == but);

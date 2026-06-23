@@ -69,10 +69,13 @@ public class RequestHandler : MonoBehaviour
         }
     }
     
-    public void WikiSearch(string Entity)
+    
+
+    public void SendWikiRequest(string EntityName, Action<string> onSuccess, Action<string> onError)
     {
-        WDsearch(Entity,onSuccess=>{}, onError=>{});
+        StartCoroutine(WDsearch(EntityName, onSuccess, onError));
     }
+
     //ricerca enità x nome tramite wikidata api
     private IEnumerator WDsearch(string EntityName,Action<string> onSuccess, Action<string> onError)
     {
@@ -96,6 +99,8 @@ public class RequestHandler : MonoBehaviour
             }
         }
     }
+
+
 
 
     //effettiva esecuzione query

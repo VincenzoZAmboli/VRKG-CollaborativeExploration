@@ -41,8 +41,8 @@ public class UIQueryHandler : MonoBehaviour
         selector.RegisterButton(gameObject, Text, Index);
     }
 
-    public void OnClick()
+    public async void OnClick()
     {
-       selector.ExecuteQuery(gameObject);
+       await selector.runselectedoperation(gameObject);
     }
 }
