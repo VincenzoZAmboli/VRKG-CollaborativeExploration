@@ -313,7 +313,14 @@ UiSetQueryLimit(20);
     ///!!!!REFACTOR BOTTONI X SCELTA ENTITà ALLINIZIO
     public async Task selectOperation(GameObject but)
     {
-        UIQueryButton selected_button= buttons.FirstOrDefault(b => b.Parent == but);
+        UIQueryButton selected_button = buttons.FirstOrDefault(b => b.Parent == but);
+        
+        // Find the corresponding UIQuery instead of relying on button.uiEntity
+        int buttonIndex = buttons.IndexOf(selected_button);
+        UIQuery selected_query = (buttonIndex >= 0 && buttonIndex < available_queries.Count) 
+            ? available_queries[buttonIndex] 
+            : null;
+
         switch (selected_button.operation)
         {
             case "LookupEntity":
@@ -325,34 +332,24 @@ UiSetQueryLimit(20);
                 updateList();
             break;
             case "ShowEntity":
-                DescriptionPanel.SetActive(true); DescriptionText.GetComponent<TextMeshProUGUI>().text = "selected_button.uiEntity.Description(x ora non trova?)";
-                Debug.Log("Selected entity description: " + selected_button.uiEntity.Description);
-               // DescriptionText.GetComponent<TextMeshProUGUI>().text = selected_button.uiEntity.Description;
-                //perche non mi trova la description text, è assegnata correttamente e sostituendo selected_button.uiEntity.Description con una stringa hard coded funziona, quindi il problema è che non trova la description dell'entità selezionata
-                // , ma perchè? forse perchè non è stata mappata correttamente da json a UIEntity? 
-                // il log mostra che le UIEntity sono state mappate correttamente da json, il problema è che quando seleziono un bottone, selected_button.uiEntity.Description è null, perchè? 
-                //  quindi non trova la description dell'entità selezionata, il probelma è selected_button.uiEntity è null, perchè? perchè non è stato assegnato correttamente quando ho creato i bottoni,
-                //  quindi devo assicurarmi che quando creo i bottoni per le entità, assegno correttamente la UIEntity a selected_button.uiEntity
-                
-                
-                UIQueryButton unshowButton = new UIQueryButton
-                {
-                    Parent = but,
-                    Text = selected_button.Text,
-                    operation = "UnshowEntity",
-                    uiEntity = selected_button.uiEntity
-                };
-                UIQueryButton selectButton = new UIQueryButton
-                {
-                    Parent = but,
-                    Text = selected_button.Text,
-                    operation = "SelectEntity",
-                    uiEntity = selected_button.uiEntity
-                };//make the same two objects for unshow and select entity, add them to available_queries and update the list
-                    UIQuery unshowEntityQuery = new UIQuery("", "UnshowEntity") { Title = "Unshow Entity", uiEntity = selected_button.uiEntity };
-                    UIQuery selectEntityQuery = new UIQuery("", "SelectEntity") { Title = "Select Entity", uiEntity = selected_button.uiEntity };
+                DescriptionPanel.SetActive(true);
+                // Use selected_query.uiEntity instead of selected_button.uiEntity
+                DescriptionText.GetComponent<TextMeshProUGUI>().text = 
+                    selected_query?.uiEntity?.Description ?? "No description available";
+                Debug.Log("Selected entity description: " + selected_query?.uiEntity?.Description);
 
-                available_queries.Add(unshowEntityQuery); 
+                UIQuery unshowEntityQuery = new UIQuery("", "UnshowEntity") 
+                { 
+                    Title = "Unshow Entity", 
+                    uiEntity = selected_query?.uiEntity 
+                };
+                UIQuery selectEntityQuery = new UIQuery("", "SelectEntity") 
+                { 
+                    Title = "Select Entity", 
+                    uiEntity = selected_query?.uiEntity 
+                };
+
+                available_queries.Add(unshowEntityQuery);
                 available_queries.Add(selectEntityQuery);
                 updateList();
                 buttons.ForEach(b => b.Parent.SetActive(b.operation == "UnshowEntity" || b.operation == "SelectEntity"));
@@ -366,12 +363,14 @@ UiSetQueryLimit(20);
             case "SelectEntity":
             //remove all buttons no one excluded well' put them back when it fails
                 buttons.ForEach(b => b.Parent.SetActive(false));
+                QueryInfo.SetActive(true);
                 infoText.text = "Searching for significant predicates...";
 
 
                 //start pipeline for exploration query and graph generation
-                string entityID = selected_button.uiEntity.ID;
-                string entityLabel = selected_button.uiEntity.Label;
+                string entityID = selected_query?.uiEntity?.ID;
+                string entityLabel = selected_query?.uiEntity?.Label;
+                Debug.Log("Running exploration pipeline for entity ID: " + entityID + ", Label: " + entityLabel);
                 Task.Run(async () =>
                 {
                     string finalQuery = await ExplorationPipeline(entityID, entityLabel);
@@ -498,8 +497,11 @@ UiSetQueryLimit(20);
         string valuesClause;
         //exe query esplorativa 
         string res = await ExplorationQuery(entityID);
+
+        infoText.text = "Exploration query executed! Extracting significant predicates...";
         //estrai i predicati
         string[] preds = await GetPredicatesFromRes(res, entityLabel);
+        infoText.text = "Significant predicates extracted! Composing final query...";
 
         if(preds != null && preds.Length > 0)
             valuesClause = string.Join(" ", preds.Select(p => $"wd:{p}"));
@@ -515,5 +517,5 @@ UiSetQueryLimit(20);
     }
     
 }
-    
+
 
