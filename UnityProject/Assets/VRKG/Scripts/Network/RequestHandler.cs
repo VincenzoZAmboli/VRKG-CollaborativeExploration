@@ -124,6 +124,8 @@ public class RequestHandler : MonoBehaviour
             // se va cambiato con info di unisa , mantieni formato ApplicationName/Version (ContactInfo)   
             webRequest.SetRequestHeader("User-Agent", "VRKG/1.0 (Contact: your_email@example.com)");
 
+            webRequest.timeout = 30;
+
             yield return webRequest.SendWebRequest();
 
             switch (webRequest.result)

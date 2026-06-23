@@ -366,20 +366,16 @@ UiSetQueryLimit(20);
                 QueryInfo.SetActive(true);
                 infoText.text = "Searching for significant predicates...";
 
-
-                //start pipeline for exploration query and graph generation
                 string entityID = selected_query?.uiEntity?.ID;
                 string entityLabel = selected_query?.uiEntity?.Label;
                 Debug.Log("Running exploration pipeline for entity ID: " + entityID + ", Label: " + entityLabel);
-                Task.Run(async () =>
-                {
-                    string finalQuery = await ExplorationPipeline(entityID, entityLabel);
-                    infoText.text = "Predicati trovati! Query pronta per esecuzione";
-                    Debug.Log("Final Query: " + finalQuery);
-                    available_queries.Add(new UIQuery(finalQuery, "ExecuteQuery") { Title = "Execute Query" });
-                    updateList();
-                    
-                });
+
+                string finalQuery = await ExplorationPipeline(entityID, entityLabel);
+                infoText.text = "Predicati trovati! Query pronta per esecuzione";
+                Debug.Log("Final Query: " + finalQuery);
+
+                available_queries.Add(new UIQuery(finalQuery, "ExecuteQuery") { Title = "Execute Query" });
+                updateList();
                 break;
             case "ExecuteQuery":
                 ExecuteQuery(but); //finalmente pd
@@ -463,8 +459,8 @@ UiSetQueryLimit(20);
     public async Task<string> ExplorationQuery(string entityID)
     //prende entità di partenza(id) e esegue prima query esplorativa, restituisce il risultato della query come stringa
     {
-        string explore="SELECT DISTINCT ?p ?pLabel WHERE { " +entityID + " ?prop ?statement . " +      
-        " ?p wikibase:directClaim ?prop . SERVICE wikibase:label { bd:serviceParam wikibase:language 'it','en'. } }";
+        string explore="SELECT DISTINCT ?p ?pLabel WHERE {  wd:" +entityID + " ?prop ?statement . " +      
+        " ?p wikibase:directClaim ?prop . SERVICE wikibase:label { bd:serviceParam wikibase:language 'it','en'. }  }";
         //query x ottenere tutti i predicacati
 
         var tcs = new TaskCompletionSource<string>();
