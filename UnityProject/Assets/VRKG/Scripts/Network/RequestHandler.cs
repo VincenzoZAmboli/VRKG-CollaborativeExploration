@@ -20,7 +20,7 @@ public class RequestHandler : MonoBehaviour
     public string ollamaUrl = "http://localhost:11434/api/generate";
     public string jsonPayload = @"{
     ""model"": ""qwen3.5:9b"", 
-    ""prompt"": ""stiamo lavorando sui knowledge graph, ti fornisco un csv di due colonne PredicateID-PredicateLabel, guardando il significato rispettivo di ogni predicato dal suo label, seleziona min.5 max.20 PredicateID dei predicati più significativi, e interessanti per l'entità: {0} che ha questa descrizione: {2} , seleziona SOLO i predicati STRETTAMENTE CORRELATI AL CONTESTO DATO IN DESCRIZIONE, NON includere informazioni inutili (NIENTE NUMERI IDENTIFICATIVI,NO RIFERIMENTI A FILE AUDIO VIDEO ETC. ) , NO INTRO/OUTRO TEXT, NON MODIFICARE IN ALCUN MODO INPUT, RIPORTA ID SELEZIONATI ESATTAMENTE COME FORNITI, OUTPUT FINALE: SOLO PredicateID SEPARATI DA VIRGOLE (NON LABEL, SOLO ID NUMERICO). RISPONDI VELOCEMENTE SU QUESTO CSV:  {1} "" , 
+    ""prompt"": ""stiamo lavorando sui knowledge graph, ti fornisco un csv di due colonne PredicateID-PredicateLabel, guardando il significato dei predicati seleziona min.5 max.20 significativi per l'entità: {0} che ha questa descrizione: {2} , NO INTRO/OUTRO TEXT, NON MODIFICARE IN ALCUN MODO INPUT, RIPORTA ID SELEZIONATI ESATTAMENTE COME FORNITI, OUTPUT FINALE: SOLO PredicateID NUMERICO SEPARATI DA VIRGOLE (NON INCLUDERE ASSOLUTAMENTE LABEL SOLO NUMERO). RISPONDI VELOCEMENTE SU QUESTO CSV:  {1} "" , 
     ""stream"": false,
     ""think"": false } ";
 //da adattare tutto x generare query complesse o lasciamo stare e solo esplorazione coadiuvata da llm locale?
@@ -260,7 +260,7 @@ public class RequestHandler : MonoBehaviour
                 cleanedCsv.AppendLine(line);
             }
         }
-
+        Debug.Log("CSV pulito, righe rimanenti: " + (cleanedCsv.ToString().Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries).Length - 1));
         return cleanedCsv.ToString();
     }
 

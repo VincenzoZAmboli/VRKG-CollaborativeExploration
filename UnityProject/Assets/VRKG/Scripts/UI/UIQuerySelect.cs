@@ -98,6 +98,8 @@ public class UIQuerySelect : MonoBehaviour
 
     private bool FirstGeneration;
 
+    private NetworkManager NetworkMan;
+
 
     private void Awake()
     {
@@ -481,8 +483,11 @@ UiSetQueryLimit(20);
 
     public async Task GraphGenInitial(string csv, string label)
     {
+        //aggiungi queryentry per stanza vuota??
         await generator.OnCsvRetrievedAsync(csv);
-        generator.StartAnim.OnGraphCreated();//start anim
+        //generator.StartAnim.OnGraphCreated();//start anim
+        if(generator.KgImporter!=null||generator.KgImporter.Graph!=null)
+            generator.resetEverything();
         generator.GenerateGraph();
         infoText.text = "Graph generated!";
         FirstGeneration = false;
@@ -506,7 +511,7 @@ UiSetQueryLimit(20);
             ?property wikibase:directClaim ?p .
             BIND(REPLACE(STR(?property), "".*(P\\d+)$"", ""$1"") AS ?propID)
 
-  SERVICE wikibase:label {{ bd:serviceParam wikibase:language ""it,en"".  ?property rdfs:label ?propLabel . }} }}  LIMIT 70";
+  SERVICE wikibase:label {{ bd:serviceParam wikibase:language ""it,en"".  ?property rdfs:label ?propLabel . }} }}  LIMIT 100";
         //query x ottenere tutti i predicacati
 
         var tcs = new TaskCompletionSource<string>();
@@ -542,7 +547,8 @@ UiSetQueryLimit(20);
         string[] preds;
         try
         {   //passo csv già pulito senza identificativi
-            preds = await GetPredicatesFromRes(reqHandler.PulisciCsv(res), entityLabel, entityDescription);
+            //modificare funzione pulizia csv
+            preds = await GetPredicatesFromRes(res, entityLabel, entityDescription);
         }
         catch (Exception ex)
         {
