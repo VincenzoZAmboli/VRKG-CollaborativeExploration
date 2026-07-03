@@ -484,10 +484,10 @@ UiSetQueryLimit(20);
     public async Task GraphGenInitial(string csv, string label)
     {
         //aggiungi queryentry per stanza vuota??
-        await generator.OnCsvRetrievedAsync(csv);
         //generator.StartAnim.OnGraphCreated();//start anim
         if(generator.KgImporter!=null||generator.KgImporter.Graph!=null)
             generator.resetEverything();
+        await generator.OnCsvRetrievedAsync(csv);
         generator.GenerateGraph();
         infoText.text = "Graph generated!";
         FirstGeneration = false;
@@ -548,7 +548,7 @@ UiSetQueryLimit(20);
         try
         {   //passo csv già pulito senza identificativi
             //modificare funzione pulizia csv
-            preds = await GetPredicatesFromRes(res, entityLabel, entityDescription);
+            preds = await GetPredicatesFromRes(reqHandler.PulisciCsv(res), entityLabel, entityDescription);
         }
         catch (Exception ex)
         {

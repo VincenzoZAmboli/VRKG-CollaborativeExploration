@@ -20,7 +20,7 @@ public class RequestHandler : MonoBehaviour
     public string ollamaUrl = "http://localhost:11434/api/generate";
     public string jsonPayload = @"{
     ""model"": ""qwen3.5:9b"", 
-    ""prompt"": ""stiamo lavorando sui knowledge graph, ti fornisco un csv di due colonne PredicateID-PredicateLabel, guardando il significato dei predicati seleziona min.5 max.20 significativi per l'entità: {0} che ha questa descrizione: {2} , NO INTRO/OUTRO TEXT, NON MODIFICARE IN ALCUN MODO INPUT, RIPORTA ID SELEZIONATI ESATTAMENTE COME FORNITI, OUTPUT FINALE: SOLO PredicateID NUMERICO SEPARATI DA VIRGOLE (NON INCLUDERE ASSOLUTAMENTE LABEL SOLO NUMERO). RISPONDI VELOCEMENTE SU QUESTO CSV:  {1} "" , 
+    ""prompt"": ""stiamo lavorando sui knowledge graph, ti fornisco un csv di due colonne PredicateID-PredicateLabel, guardando il significato dei predicati seleziona min.5 max.15 significativi per l'entità: {0} che ha questa descrizione: {2} , (Non includere predicati ripetitivi o altre informazioni ridondanti!) NO INTRO/OUTRO TEXT, NON MODIFICARE IN ALCUN MODO INPUT, RIPORTA ID SELEZIONATI ESATTAMENTE COME FORNITI, OUTPUT FINALE: SOLO PredicateID NUMERICO SEPARATI DA VIRGOLE (NON INCLUDERE ASSOLUTAMENTE LABEL SOLO NUMERO). RISPONDI VELOCEMENTE SU QUESTO CSV:  {1} "" , 
     ""stream"": false,
     ""think"": false } ";
 //da adattare tutto x generare query complesse o lasciamo stare e solo esplorazione coadiuvata da llm locale?
@@ -30,7 +30,7 @@ public class RequestHandler : MonoBehaviour
     {   string[] predicates= {""};
         StartCoroutine(OllamaConnection(subject,csv,description,
         onSuccess =>
-        {
+        {   Debug.Log("LLMCONNECTED!!: workin on " + csv);
             if(System.Text.RegularExpressions.Regex.IsMatch(onSuccess, @"^(\s+,)*\s+$"))
                 predicates= onSuccess.Split(",");
             else
@@ -218,50 +218,11 @@ public class RequestHandler : MonoBehaviour
 //pulizia iniziale prima di mandarlo al modello locale(sparagno token e tempo)
     public string PulisciCsv(string rawCsv)
     {
-        if (string.IsNullOrEmpty(rawCsv)) return "";
-
-        StringBuilder cleanedCsv = new StringBuilder();
-        
-        // Divide in righe x newline
         string[] lines = rawCsv.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-
-        if (lines.Length == 0) return "";
-
-        cleanedCsv.AppendLine(lines[0]);
-
-        for (int i = 1; i < lines.Length; i++)
-        {
-            string line = lines[i];
-
-            string[] columns = line.Split(',');
-
-            // Controlliamo che la riga abbia effettivamente almeno 5 colonne per evitare errori IndexOutOfRange
-            if (columns.Length >= 5)
-            {
-                // La colonna 5 (indice 4) è il ?predicateLabel
-                string predicateLabel = columns[4].Trim();
-                predicateLabel = predicateLabel.Trim('"');
-
-                // Se l'etichetta NON inizia con (o non contiene) "identificativo" (ignorando maiuscole/minuscole)
-                if (!predicateLabel.StartsWith("identificativo", StringComparison.OrdinalIgnoreCase) && 
-                    !predicateLabel.StartsWith("identifier", StringComparison.OrdinalIgnoreCase))
-                {
-                    // La riga è pulita, la teniamo
-                    cleanedCsv.AppendLine(line);
-                }
-                else
-                {
-                    Debug.Log("Scartata proprietà identificativa: " + predicateLabel);
-                }
-            }
-            else
-            {
-                // Se la riga è malformata ma non è vuota, per sicurezza la manteniamo
-                cleanedCsv.AppendLine(line);
-            }
-        }
-        Debug.Log("CSV pulito, righe rimanenti: " + (cleanedCsv.ToString().Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries).Length - 1));
-        return cleanedCsv.ToString();
+        StringBuilder cleanedCsv = new StringBuilder();
+        string[] clearlines = lines.Where(line=>!line.Contains("identificativo")&&!line.Contains("identifier")&&!line.Contains("file")).ToArray();
+        
+        return string.Join("\n", clearlines);
     }
 
 
