@@ -1217,6 +1217,7 @@ MonoBehaviour:
   FocusHndlr: {fileID: 2010362070}
   generator: {fileID: 2010362076}
   DescriptionPanel: {fileID: 1897381732}
+  DescriptionText: {fileID: 1751006565}
 --- !u!114 &61126864
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5766,7 +5767,7 @@ MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 2113875699234556495, guid: 18470d71939382448be2ecd06efa9662, type: 3}
   m_PrefabInstance: {fileID: 1897381730}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
+  m_GameObject: {fileID: 1751006565}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
@@ -8524,6 +8525,11 @@ MonoBehaviour:
   UIEdges: {fileID: 693080075}
   Text: {fileID: 1727688174}
   Index: 9
+--- !u!1 &1751006565 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 8359743410951189687, guid: 18470d71939382448be2ecd06efa9662, type: 3}
+  m_PrefabInstance: {fileID: 1897381730}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &1776659831
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -8678,7 +8684,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Item selected
+  m_text: 'Item selected :  '
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: cea806d74afa78f44aaac95ecdd2a867, type: 2}
   m_sharedMaterial: {fileID: -1082001041736114527, guid: cea806d74afa78f44aaac95ecdd2a867, type: 2}

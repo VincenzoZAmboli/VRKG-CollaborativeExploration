@@ -96,13 +96,15 @@ public class UIQuerySelect : MonoBehaviour
     public SpawnedNode spawnPointNode;
     private int query_limit; 
 
-   
+    private bool FirstGeneration;
+
+
     private void Awake()
     {
         buttons = new List<UIQueryButton>();
         available_queries = new List<UIQuery>();
         reqHandler = gameObject.AddComponent<RequestHandler>();
-        
+        FirstGeneration = true;
         available_queries.Add(new UIQuery("","LookupEntity"){Title = "Lookup entity"});
 
 
@@ -126,7 +128,7 @@ public class UIQuerySelect : MonoBehaviour
         test.Title = "Wikidata connection test";
         test.operation = "ExecuteQuery";
         /////////////RIMUOVERE TEST quando hai trovato modo di inserire query dinamicamente con criterio di scelta
-        available_queries.Add(test);
+       // available_queries.Add(test);
 ////////////////////////////////////
 }
     
@@ -193,6 +195,13 @@ UiSetQueryLimit(20);
     }
 ///////////////////////////////////////////////////////////////////////////
 
+    private string getSearchTermFromInput()
+    {
+        //per ora hard coded, poi da input vocale
+        return "Socrates";
+    }
+
+
 
     public void OnNodeSelected(GameObject node)
     {
@@ -200,7 +209,9 @@ UiSetQueryLimit(20);
         spawnPointNode = generator.spawnedNodes.FirstOrDefault(n => n.GO == focused_node);
         string nodeid= spawnPointNode.Node.ID;
         Debug.Log("Selected node ID: "+ nodeid);
-
+        //available_queries.Add(new UIQuery("","LookupEntity"){Title = "Lookup entity"});
+        //Rendere lookup pipeline compatibile con singoli nodi (non sonlo gen iniziale)
+        //aggiungere operation specifica x nodi gia esistenti?
         gameObject.SetActive(true);
         updateList();
 
@@ -325,8 +336,7 @@ UiSetQueryLimit(20);
         {
             case "LookupEntity":
                 //ricevi input da microfono per ora simulato hard coded
-////////////////////////per ora inserisci qua inout ricerca hard coded poi da mic
-                await WikiSearch("Michelangelo");
+                await WikiSearch(getSearchTermFromInput());
                 //await function completion and remove this button permanently from available_queries
                 available_queries.RemoveAll(q => q.operation == "LookupEntity");
                 updateList();
@@ -368,17 +378,36 @@ UiSetQueryLimit(20);
 
                 string entityID = selected_query?.uiEntity?.ID;
                 string entityLabel = selected_query?.uiEntity?.Label;
-                Debug.Log("Running exploration pipeline for entity ID: " + entityID + ", Label: " + entityLabel);
+                string entityDescription = selected_query?.uiEntity?.Description;
+                Debug.Log("Running exploration pipeline for entity ID: " + entityID + ", Label: " + entityLabel + ", Description: " + entityDescription);
 
-                string finalQuery = await ExplorationPipeline(entityID, entityLabel);
+                string finalQuery = await ExplorationPipeline(entityID, entityLabel, entityDescription);
+                if (finalQuery.StartsWith("Error:"))
+                {
+                    infoText.text = finalQuery;
+                    Debug.LogError(finalQuery);
+                    Invoke("ReactivateButtons", 3f);
+                    if(FirstGeneration)/////////////////////////////Aggiungere variante per gen da nodo.
+                        available_queries.Add(new UIQuery("","LookupEntity"){Title = "Lookup entity"});
+                    return;
+                }
+                else
+                {
+                    Debug.Log("Exploration pipeline completed successfully. Final query: " + finalQuery);
+                    //remove all queries from list no exeptions 
+                    
+                    
+                }
                 infoText.text = "Predicati trovati! Query pronta per esecuzione";
                 Debug.Log("Final Query: " + finalQuery);
 
-                available_queries.Add(new UIQuery(finalQuery, "ExecuteQuery") { Title = "Execute Query" });
+                available_queries.Add(new UIQuery(finalQuery, "ExecuteQuery") { Title = "Predicati significativi" });
+                //title va bene anche per prima gen tanto non si vedrà
+                available_queries.RemoveAll(q => q.operation != "ExecuteQuery");
                 updateList();
                 break;
             case "ExecuteQuery":
-                ExecuteQuery(but); //finalmente pd
+                ExecuteQuery(but);
                 break;
 
 
@@ -411,7 +440,10 @@ UiSetQueryLimit(20);
                 async onSuccess=>{
                     infoText.text = "Query executed!\nGenerating graph...";
                     Debug.Log("QUERY RESULT : \n"+ onSuccess);
-                    await GraphGen(onSuccess,selected_query.Title);
+                    if(FirstGeneration)
+                        await GraphGenInitial(onSuccess,selected_query.Title);
+                    else
+                        await GraphGenFromNode(onSuccess,selected_query.Title);
                     available_queries.RemoveAt(qindex);
                     //riattiva 
                     Invoke("ReactivateButtons", 5f);
@@ -429,7 +461,7 @@ UiSetQueryLimit(20);
     }
 
 
-    public async Task GraphGen(string csv, string label)
+    public async Task GraphGenFromNode(string csv, string label)
     {
         //before resetting graph save spawn point node from cuurr cragh
         //so i can create edge between it and first node of new subgraph
@@ -447,6 +479,15 @@ UiSetQueryLimit(20);
 
     }
 
+    public async Task GraphGenInitial(string csv, string label)
+    {
+        await generator.OnCsvRetrievedAsync(csv);
+        generator.StartAnim.OnGraphCreated();//start anim
+        generator.GenerateGraph();
+        infoText.text = "Graph generated!";
+        FirstGeneration = false;
+    }
+
 
 //////////////////////////////////////////
     // 1) funzione searchterm-> chiamata api->return json parsato passato a ui come opzioni
@@ -459,8 +500,13 @@ UiSetQueryLimit(20);
     public async Task<string> ExplorationQuery(string entityID)
     //prende entità di partenza(id) e esegue prima query esplorativa, restituisce il risultato della query come stringa
     {
-        string explore="SELECT DISTINCT ?p ?pLabel WHERE {  wd:" +entityID + " ?prop ?statement . " +      
-        " ?p wikibase:directClaim ?prop . SERVICE wikibase:label { bd:serviceParam wikibase:language 'it','en'. }  }";
+        string explore= $@"SELECT DISTINCT ?propID ?propLabel WHERE {{
+
+            wd:{entityID} ?p ?statement .
+            ?property wikibase:directClaim ?p .
+            BIND(REPLACE(STR(?property), "".*(P\\d+)$"", ""$1"") AS ?propID)
+
+  SERVICE wikibase:label {{ bd:serviceParam wikibase:language ""it,en"".  ?property rdfs:label ?propLabel . }} }}  LIMIT 70";
         //query x ottenere tutti i predicacati
 
         var tcs = new TaskCompletionSource<string>();
@@ -479,14 +525,14 @@ UiSetQueryLimit(20);
     }
 
 
-    public async Task<string[]> GetPredicatesFromRes(string expResult, string entityLabel)
+    public async Task<string[]> GetPredicatesFromRes(string expResult, string entityLabel, string entityDescription)
     //prende il risultato query esplorativa, esegue chiamata al modello per prendere predicati importanti e li restituisce
     {
-        return await reqHandler.GetSignificantPredicatesAsync(entityLabel, expResult);
+        return await reqHandler.GetSignificantPredicatesAsync(entityLabel, expResult, entityDescription);
     }
     
 
-    public async Task<string> ExplorationPipeline(string entityID, string entityLabel)
+    public async Task<string> ExplorationPipeline(string entityID, string entityLabel, string entityDescription)
     //esegue chiamate asincrone delle funzioni di sparql e ollama, compone query finale e la restituisce come stringa
     {
         string res = await ExplorationQuery(entityID);
@@ -496,7 +542,7 @@ UiSetQueryLimit(20);
         string[] preds;
         try
         {
-            preds = await GetPredicatesFromRes(res, entityLabel);
+            preds = await GetPredicatesFromRes(res, entityLabel, entityDescription);
         }
         catch (Exception ex)
         {
@@ -510,10 +556,27 @@ UiSetQueryLimit(20);
             return "Error: No significant predicates found for the entity."; 
 
         //componi query finale
-        return "string sparqlQuery = $@ " +
-        " SELECT ?subject ?subjectLabel (?subjectDescription AS ?subjectComment) ?predicate (?propertyLabel AS ?predicateLabel) ?object ?objectLabel " +
-        " WHERE {{ BIND(wd:{entityId} AS ?subject) . VALUES ?property {{ {valuesClause} }} . " +
-        " ?property wikibase:directClaim ?predicate . ?subject ?predicate ?object . SERVICE wikibase:label {{ bd:serviceParam wikibase:language 'it,en'. }} }} " ;
+        return $@"
+SELECT ?subject ?subjectLabel ?subjectComment ?predicate ?predicateLabel ?object ?objectLabel
+WHERE {{
+  BIND(wd:{entityID} AS ?subject)
+  
+  VALUES ?property {{ {valuesClause} }}
+  
+  ?property wikibase:directClaim ?predicate .
+  ?subject ?predicate ?object .
+  
+ 
+  SERVICE wikibase:label {{ 
+    bd:serviceParam wikibase:language ""it,en"". 
+    ?subject rdfs:label ?subjectLabel .
+    ?subject schema:description ?subjectComment .
+    ?property rdfs:label ?predicateLabel .
+    ?object rdfs:label ?objectLabel .
+  }}
+}}";
+        
+        
 
     }
     
