@@ -85,7 +85,7 @@ Material:
     - _BumpScale: 1
     - _Cutoff: 0.5
     - _DetailNormalMapScale: 1
-    - _Dissolve: 0.9992615
+    - _Dissolve: 0.9998932
     - _DstBlend: 0
     - _Exposure: 1
     - _GlossMapScale: 1
@@ -96,7 +96,7 @@ Material:
     - _Mode: 0
     - _OcclusionStrength: 1
     - _Parallax: 0.02
-    - _Rotation: 38.114254
+    - _Rotation: 29.101421
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
     - _SrcBlend: 1

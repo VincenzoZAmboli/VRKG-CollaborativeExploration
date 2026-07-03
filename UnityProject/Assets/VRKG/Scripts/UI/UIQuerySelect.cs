@@ -541,8 +541,8 @@ UiSetQueryLimit(20);
         string valuesClause = "";
         string[] preds;
         try
-        {
-            preds = await GetPredicatesFromRes(res, entityLabel, entityDescription);
+        {   //passo csv già pulito senza identificativi
+            preds = await GetPredicatesFromRes(reqHandler.PulisciCsv(res), entityLabel, entityDescription);
         }
         catch (Exception ex)
         {
