@@ -16,7 +16,8 @@ public class QueryEntry //indica file csv da usare x gen inizale grafo
 public class UIQuery{//per costruzione query da ui
     public string Title; //Relazione che lega Nodo Origine a risultati query (nullo se nodo sorgente)
     public string nodeID; //ID wdt nodo di partenza (nullo se sorgente)
-    public string sparqle_query;    //infovina un po'
+    public string sparqle_query;    //nullo x qualsiasi op che non sia ExecuteQuery--
+    //pessimo modo di fare refactoring dell'ogetto - chiedo scusa 
     public QueryEntry entry; // obv serve solo se sorgente (forse non serve proprio qua ma se l'ho lasciato ci sta un mitvo poi vrimm)
     public UIQuery(string query, string op="ExecuteQuery"){
         sparqle_query=query;

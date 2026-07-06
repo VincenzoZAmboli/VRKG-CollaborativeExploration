@@ -57,6 +57,10 @@ public class UIQueryButton
     //          UnshowEntity  - descrizione rimossi - tornano tutti i bottoni
     //          SelectEntity - fa partire la pipeline di ricerca - aggiornamento tramite TMP
     // ExecuteQuery- alla fine se tutto va bene exe- e gen grafo.
+    //+++ LookupNode - per far partire pipeline da singolo nodo - 
+    //      1)ctrl endpoint- se entity è wd: o wdt: allora prendi ID - Label -Descrizione - ==> passata a ExplorationPipeline 
+    //      >>> prodotto finale - Execute Query Operation - e gen grafo 
+    //      2) se Dbpedia fai tutta pipeline di riecerca - per ora lasciamo appeso perchè probabilmente non serve affatto
 
     public UIEntity uiEntity;//obv può essere nullo se non c'entra con quell'operzione
 }
@@ -210,10 +214,14 @@ UiSetQueryLimit(20);
         focused_node= node;//4later query
         spawnPointNode = generator.spawnedNodes.FirstOrDefault(n => n.GO == focused_node);
         string nodeid= spawnPointNode.Node.ID;
-        Debug.Log("Selected node ID: "+ nodeid);
-        //available_queries.Add(new UIQuery("","LookupEntity"){Title = "Lookup entity"});
-        //Rendere lookup pipeline compatibile con singoli nodi (non sonlo gen iniziale)
-        //aggiungere operation specifica x nodi gia esistenti?
+        string nodeLabel=spawnPointNode.Node.Label;
+        string nodeDesc= spawnPointNode.Node.Comment;
+        Debug.Log("Selected NODE ID: "+ nodeid);
+    
+        UIQuery n = new UIQuery("","LookupNode");
+        n.uiEntity= new UIEntity(nodeid,nodeLabel,nodeDesc);
+        available_queries.Add( n );
+        
         gameObject.SetActive(true);
         updateList();
 
@@ -352,7 +360,7 @@ UiSetQueryLimit(20);
 
                 UIQuery unshowEntityQuery = new UIQuery("", "UnshowEntity") 
                 { 
-                    Title = "Unshow Entity", 
+                    Title = "Deselect Entity", 
                     uiEntity = selected_query?.uiEntity 
                 };
                 UIQuery selectEntityQuery = new UIQuery("", "SelectEntity") 
@@ -389,7 +397,7 @@ UiSetQueryLimit(20);
                     infoText.text = finalQuery;
                     Debug.LogError(finalQuery);
                     Invoke("ReactivateButtons", 3f);
-                    if(FirstGeneration)/////////////////////////////Aggiungere variante per gen da nodo.
+                    if(FirstGeneration)///riaggiungi bottone lookupentity se prima gen fallita
                         available_queries.Add(new UIQuery("","LookupEntity"){Title = "Lookup entity"});
                     return;
                 }
@@ -410,6 +418,33 @@ UiSetQueryLimit(20);
                 break;
             case "ExecuteQuery":
                 ExecuteQuery(but);
+                break;
+            case "LookupNode":
+                UIEntity currNode= selected_query.uiEntity;
+                if(currNode.ID.Contains("wd:")||currNode.ID.Contains("wdt:")){
+                    string finalNodeQuery = await ExplorationPipeline(currNode.ID,currNode.Label,currNode.Description);
+                    if (finalNodeQuery.StartsWith("Error:"))
+                    {
+                        infoText.text = finalNodeQuery;
+                        Debug.LogError(finalNodeQuery);
+                        Invoke("ReactivateButtons", 3f);
+                        return;
+                    }
+                    else
+                    {
+                        Debug.Log("Exploration pipeline completed successfully. Final query: " + finalNodeQuery);
+                        available_queries.Add(new UIQuery(finalNodeQuery, "ExecuteQuery") { Title = "Predicati significativi" });
+                
+                        available_queries.RemoveAll(q => q.operation != "ExecuteQuery");
+                        updateList();
+                    }
+                }
+                else
+                    infoText.text = "Nodo con endpoint diverso da WikiData";
+                break;
+            default:
+                infoText.text = "Unknown operation: " + selected_button.operation;
+                Debug.LogWarning("Unknown operation: " + selected_button.operation);
                 break;
 
 
@@ -511,7 +546,7 @@ UiSetQueryLimit(20);
             ?property wikibase:directClaim ?p .
             BIND(REPLACE(STR(?property), "".*(P\\d+)$"", ""$1"") AS ?propID)
 
-  SERVICE wikibase:label {{ bd:serviceParam wikibase:language ""it,en"".  ?property rdfs:label ?propLabel . }} }}  LIMIT 100";
+  SERVICE wikibase:label {{ bd:serviceParam wikibase:language ""it,en"".  ?property rdfs:label ?propLabel . }} }}  LIMIT 120";
         //query x ottenere tutti i predicacati
 
         var tcs = new TaskCompletionSource<string>();
