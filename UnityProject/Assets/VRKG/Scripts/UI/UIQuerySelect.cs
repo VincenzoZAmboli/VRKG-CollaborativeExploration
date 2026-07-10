@@ -217,13 +217,16 @@ UiSetQueryLimit(20);
         string nodeLabel=spawnPointNode.Node.Label;
         string nodeDesc= spawnPointNode.Node.Comment;
         Debug.Log("Selected NODE ID: "+ nodeid);
-    
+        available_queries.RemoveAll(q => q.operation == "LookupEntity" || q.operation == "LookupNode");
+
         UIQuery n = new UIQuery("","LookupNode");
+        n.Title= "Explore node: "+ nodeLabel;
         n.uiEntity= new UIEntity(nodeid,nodeLabel,nodeDesc);
         available_queries.Add( n );
         
         gameObject.SetActive(true);
         updateList();
+        QueryInfo.SetActive(true);
 
 
     }
@@ -245,9 +248,15 @@ UiSetQueryLimit(20);
     public void OnNodeUnselected()
     {
         //remove unselected queries (where UIquery.nodeid== spawnpintnode.id)
-        available_queries.RemoveAll(q => q.nodeID == spawnPointNode.Node.ID);
+        available_queries.RemoveAll(q => q.nodeID == spawnPointNode.Node.ID);//non so perche non toglie query corrispondente
+        available_queries.RemoveAll(q => q.operation == "LookupNode");
+        available_queries.RemoveAll(q => q.operation == "LookupEntity");
+        available_queries.Add(new UIQuery("","LookupEntity"){Title = "Lookup entity"});
         updateList();
         gameObject.SetActive(false);
+        QueryInfo.SetActive(false);
+        //break pipeline if running and reset everything
+        
     }
 
     public void ReactivateButtons()
@@ -360,7 +369,7 @@ UiSetQueryLimit(20);
 
                 UIQuery unshowEntityQuery = new UIQuery("", "UnshowEntity") 
                 { 
-                    Title = "Deselect Entity", 
+                    Title = "Go back", 
                     uiEntity = selected_query?.uiEntity 
                 };
                 UIQuery selectEntityQuery = new UIQuery("", "SelectEntity") 
@@ -393,7 +402,8 @@ UiSetQueryLimit(20);
 
                 string finalQuery = await ExplorationPipeline(entityID, entityLabel, entityDescription);
                 if (finalQuery.StartsWith("Error:"))
-                {
+                {   
+                    QueryInfo.SetActive(true);
                     infoText.text = finalQuery;
                     Debug.LogError(finalQuery);
                     Invoke("ReactivateButtons", 3f);
@@ -421,10 +431,12 @@ UiSetQueryLimit(20);
                 break;
             case "LookupNode":
                 UIEntity currNode= selected_query.uiEntity;
-                if(currNode.ID.Contains("wd:")||currNode.ID.Contains("wdt:")){
-                    string finalNodeQuery = await ExplorationPipeline(currNode.ID,currNode.Label,currNode.Description);
+                if(currNode.ID.Contains("wd:")||currNode.ID.Contains("wdt:")||currNode.ID.Contains("wikidata.org")){ 
+                    string cleanid= currNode.ID.Replace("http://www.wikidata.org/entity/","").Replace("wd:","").Replace("wdt:","");
+                    string finalNodeQuery = await ExplorationPipeline(cleanid,currNode.Label,currNode.Description);
                     if (finalNodeQuery.StartsWith("Error:"))
-                    {
+                    {   
+                        QueryInfo.SetActive(true);
                         infoText.text = finalNodeQuery;
                         Debug.LogError(finalNodeQuery);
                         Invoke("ReactivateButtons", 3f);
@@ -440,7 +452,11 @@ UiSetQueryLimit(20);
                     }
                 }
                 else
+                {
+                    QueryInfo.SetActive(true);
                     infoText.text = "Nodo con endpoint diverso da WikiData";
+                }
+                    
                 break;
             default:
                 infoText.text = "Unknown operation: " + selected_button.operation;
