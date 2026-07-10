@@ -294,31 +294,20 @@ public class MPGraphGenerator : MonoBehaviourPun
         Vector3 curNodeDirection = Quaternion.AngleAxis(360f, Vector3.forward) * Vector3.right;
         Vector3 curNodePosition = spawnNOdePOs + curNodeDirection * AdjacentNodesDistance;
 
-        //salvo nodo centrale xdopo
-        SpawnedNode centralNode =null;
+        
 
         while (spawnedNodes.Count <= MaxNodes && spawnedNodes.Count < KgImporter.Graph.Nodes.Count)
         {
-            SpawnedNode firstNode; 
-            KGNode first = toSpawnNodes.FirstOrDefault();
-            if(first != null)
-                firstNode = SpawnNode(first, curNodePosition);
-            else{
-                Debug.LogError("No nodes to spawn");
-                return;
-            }
-            if (firstNode != null)
-            {
-                openNodes.Add(firstNode);
+            
+            openNodes.Add(spawnpoint);
                 
                 while (openNodes.Count > 0 && spawnedNodes.Count <= MaxNodes)
                 {
                     SpawnedNode curNode = openNodes[0];
                     List<SpawnedNode> newNodes;
-                    if (closedNodes.Count == 0)
+                    if (closedNodes.Count == 0||curNode==spawnpoint)
                     {
                         newNodes = SpawnNodesAndEdgesAdjacentToNode(curNode);
-                        centralNode= curNode;
                     }
                     else
                     {
@@ -329,18 +318,7 @@ public class MPGraphGenerator : MonoBehaviourPun
                     openNodes.AddRange(newNodes);
                     closedNodes.Add(curNode);
                 }
-
-                // Create edge between spawnpoint and firstNode AFTER firstNode is spawned
-                if(centralNode!=null){
-                    KGEdge newEdge = new KGEdge();
-                    newEdge.IDNode1 = spawnpoint.Node.ID;
-                    newEdge.IDNode2 = centralNode.Node.ID;
-                    newEdge.Label = label;
-                    toSpawnEdges.Add(newEdge);
-                    SpawnEdge(newEdge);
-                }
-
-            }
+            
         }
     }
 

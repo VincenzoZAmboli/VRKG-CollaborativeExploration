@@ -517,7 +517,7 @@ UiSetQueryLimit(20);
     public async Task GraphGenFromNode(string csv, string label)
     {
         //before resetting graph save spawn point node from cuurr cragh
-        //so i can create edge between it and first node of new subgraph
+        
         if (spawnPointNode == null)
         {
             Debug.LogError("Spawn point node not found");
