@@ -105,8 +105,9 @@ public class MPGraphGenerator : MonoBehaviourPun
     //and confusion with old nodes when creating subgraph
     //make separate funcion to reset everyreference to old graph 
     // before generating new subgraph
-    public void resetEverything()//dachiamare prima di csvretreive 
+    public MPGraphGenerator resetEverything()//dachiamare prima di csvretreive 
     {
+        MPGraphGenerator temp =this;
         //make funciotn in kg importer to clear its own graph data structures
         //to avoid confusion when adding subgraph
         KgImporter.ClearTableAndGraph();       
@@ -120,6 +121,7 @@ public class MPGraphGenerator : MonoBehaviourPun
         openNodes.Clear();
         closedNodes.Clear();
 
+        return temp;
     }
 
 

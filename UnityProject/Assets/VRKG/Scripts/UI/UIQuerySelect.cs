@@ -524,9 +524,24 @@ UiSetQueryLimit(20);
             return;
         }
         
-        generator.resetEverything();//testing if this avoids confusion when adding subgrap
+        MPGraphGenerator temp= generator.resetEverything();//x salavare vecchi nodi
+        //testing if this avoids confusion when adding subgrap
         await generator.OnCsvRetrievedAsync(csv);//aggiungere controllo su formato query?
         generator.GenerateGraphFromNode(spawnPointNode,label);
+
+        //re- adding old nodes so when Spawnednode from old grpah is on focus in scene, no null error is caused
+        //still no csv merge-
+
+        //for each spawned node and spawned edge in temp, check if it already exists in generator, if not add it to generator
+        foreach (var oldNode in temp.spawnedNodes)
+        {
+            if (!generator.spawnedNodes.Any(n => n.Node.ID == oldNode.Node.ID))
+            {
+                generator.spawnedNodes.Add(oldNode);
+            }
+        }
+
+//vediamo se fix veloce sui riferimenti agli ogetti scena basta e avanza
 
         infoText.text = "Graph generated!";
 
